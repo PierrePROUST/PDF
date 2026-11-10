@@ -35,7 +35,7 @@ function serviceWorker(): Plugin {
       }
       const fichiers = (await listerFichiers(dossierSortie))
         .map((f) => relative(dossierSortie, f).split(sep).join("/"))
-        .filter((f) => f !== "sw.js" && !f.endsWith(".map") && !/(^|\/)LICENSE/.test(f))
+        .filter((f) => f !== "sw.js" && !f.endsWith(".map") && !/(^|\/)LICENSE/.test(f) && !f.startsWith("essais-installation/"))
         .sort();
       const empreinte = createHash("sha256");
       for (const f of fichiers) {
