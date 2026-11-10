@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#1f2933" />
+    <meta name="description" content="Lecteur PDF avec table des matières, signets et retour arrière." />
+    <title>PDF</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icones/icone-192.png" />
+    <link rel="apple-touch-icon" href="./icones/apple-touch-icon.png" />
+  </head>
+  <body>
+    <!-- Écran d'accueil : documents récents -->
+    <section id="accueil" class="ecran">
+      <header class="barre">
+        <h1 class="barre-titre">PDF</h1>
+      </header>
+      <main class="accueil-contenu">
+        <label class="bouton bouton-principal" for="choix-fichier">Ouvrir un PDF</label>
+        <input id="choix-fichier" type="file" accept="application/pdf,.pdf" hidden />
+        <h2>Documents récents</h2>
+        <ul id="liste-recents" class="liste"></ul>
+        <p id="aucun-recent" class="vide">Aucun document pour l'instant.</p>
+        <p id="espace-stockage" class="note"></p>
+      </main>
+    </section>
+
+    <!-- Écran de lecture -->
+    <section id="lecteur" class="ecran" hidden>
+      <header class="barre">
+        <button id="btn-fermer" class="icone" type="button" aria-label="Fermer le document" title="Documents">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" /></svg>
+        </button>
+        <h1 id="titre-document" class="barre-titre"></h1>
+        <button id="btn-retour" class="icone" type="button" aria-label="Retour" title="Retour" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" /></svg>
+        </button>
+        <button id="btn-avancer" class="icone" type="button" aria-label="Avancer" title="Avancer" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h12.2l-5.6-5.6L12 4l8 8-8 8-1.4-1.4 5.6-5.6H4z" /></svg>
+        </button>
+        <button id="btn-tdm" class="icone" type="button" aria-label="Table des matières" title="Table des matières">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v2H3zm4 0h14v2H7zM3 11h2v2H3zm6 0h12v2H9zM3 17h2v2H3zm6 0h12v2H9z" /></svg>
+        </button>
+        <button id="btn-signets" class="icone" type="button" aria-label="Signets" title="Signets">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" /></svg>
+        </button>
+      </header>
+      <div id="zone-lecture">
+        <div id="conteneur-pdf">
+          <div id="visionneuse" class="pdfViewer"></div>
+        </div>
+      </div>
+      <button id="indicateur-page" class="indicateur" type="button" aria-label="Aller à la page">– / –</button>
+      <button id="bandeau-retour" class="bandeau" type="button" hidden></button>
+      <p id="message" class="message" role="status" hidden></p>
+    </section>
+
+    <!-- Panneau latéral : table des matières -->
+    <aside id="panneau-tdm" class="panneau" hidden aria-label="Table des matières">
+      <header class="panneau-entete">
+        <h2>Table des matières</h2>
+        <button class="icone fermer-panneau" type="button" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z" /></svg>
+        </button>
+      </header>
+      <div id="arbre-tdm" class="panneau-contenu"></div>
+    </aside>
+
+    <!-- Panneau latéral : signets perso -->
+    <aside id="panneau-signets" class="panneau panneau-droite" hidden aria-label="Signets">
+      <header class="panneau-entete">
+        <h2>Signets</h2>
+        <button class="icone fermer-panneau" type="button" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z" /></svg>
+        </button>
+      </header>
+      <div class="panneau-contenu">
+        <button id="btn-ajouter-signet" class="bouton bouton-principal" type="button">+ Ajouter un signet ici</button>
+        <ul id="liste-signets" class="liste"></ul>
+        <p id="aucun-signet" class="vide">Aucun signet dans ce document.</p>
+      </div>
+    </aside>
+    <div id="voile" hidden></div>
+
+    <!-- Boîte de dialogue générique de saisie -->
+    <dialog id="dialogue-saisie">
+      <form method="dialog">
+        <label id="dialogue-libelle" for="dialogue-champ"></label>
+        <input id="dialogue-champ" autocomplete="off" />
+        <div class="dialogue-actions">
+          <button class="bouton" value="annuler" type="submit" formnovalidate>Annuler</button>
+          <button class="bouton bouton-principal" value="ok" type="submit">OK</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
