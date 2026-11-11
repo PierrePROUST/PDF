@@ -13,7 +13,7 @@ import {
   majPosition,
   type DocumentEnregistre,
 } from "./stockage";
-import { afficherMessage, demander, el } from "./ui";
+import { afficherErreur, afficherMessage, demander, el } from "./ui";
 import { TableDesMatieres } from "./tdm";
 import { Visionneuse } from "./visionneuse";
 
@@ -228,9 +228,8 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
     void tdm.charger(doc).then(() => tdm.majCourante(visionneuse.emplacement()));
     void signets.charger(docId);
   } catch (e) {
-    console.error(e);
     if (entreeAjoutee) history.back();
-    alert(`Impossible d'ouvrir « ${nom} » : ${(e as Error).message ?? e}`);
+    afficherErreur(`Impossible d'ouvrir « ${nom} » (PDF.js)`, e);
   } finally {
     ouvertureEnCours = false;
   }
@@ -326,6 +325,16 @@ el("btn-fermer").addEventListener("click", () => {
 void recents.afficher();
 void recupererPartage();
 
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  navigator.serviceWorker.register("./sw.js").catch((e) => console.error("Service worker :", e));
+// ---------- Service worker (hors-ligne, réception des partages) ----------
+if (import.meta.env.PROD) {
+  if (!("serviceWorker" in navigator)) {
+    afficherErreur("Service worker indisponible", "Ce navigateur ne prend pas en charge les service workers : pas de mode hors ligne ni de « Partager ».");
+  } else {
+    // Le service worker signale lui-même un échec d'installation (mise en cache impossible…).
+    navigator.serviceWorker.addEventListener("message", (ev: MessageEvent) => {
+      const d = ev.data as { type?: string; message?: string } | null;
+      if (d?.type === "erreur-sw") afficherErreur("Échec de l'installation du service worker", d.message ?? "");
+    });
+    navigator.serviceWorker.register("./sw.js").catch((e) => afficherErreur("Échec de l'enregistrement du service worker", e));
+  }
 }

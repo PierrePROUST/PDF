@@ -1,8 +1,10 @@
 // Chargement de PDF.js. Les composants de visionneuse (pdf_viewer.mjs) lisent la
 // bibliothèque dans globalThis.pdfjsLib : ce module doit être importé avant eux.
-import * as pdfjsLib from "pdfjs-dist";
+// Version « legacy » obligatoire : elle contient les polyfills nécessaires à Chrome 125
+// (la version moderne appelle directement des API absentes des Chrome anciens).
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 // Worker servi localement (pas de CDN) pour le hors-ligne.
-import urlWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import urlWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = urlWorker;
 (globalThis as unknown as { pdfjsLib: typeof pdfjsLib }).pdfjsLib = pdfjsLib;

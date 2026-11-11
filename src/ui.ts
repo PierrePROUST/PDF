@@ -52,3 +52,27 @@ export function formaterTaille(octets: number): string {
   if (octets < 1024 ** 3) return `${(octets / 1024 ** 2).toFixed(1).replace(".", ",")} Mo`;
   return `${(octets / 1024 ** 3).toFixed(2).replace(".", ",")} Go`;
 }
+
+declare global {
+  interface Window {
+    /** Défini par le script classique d'index.html (fonctionne même si ce module échoue). */
+    afficherErreur?: (titre: string, detail: string) => void;
+  }
+}
+
+/** Texte complet d'une erreur (message + pile d'appels si disponible). */
+export function texteErreur(e: unknown): string {
+  if (e instanceof Error) return e.stack && e.stack.includes(e.message) ? e.stack : `${e.name}: ${e.message}\n${e.stack ?? ""}`;
+  return String(e);
+}
+
+/**
+ * Affiche une erreur à l'écran avec la version du navigateur (bandeau rouge d'index.html).
+ * Repli sur alert() si le bandeau n'est pas disponible.
+ */
+export function afficherErreur(titre: string, e: unknown): void {
+  console.error(titre, e);
+  const detail = texteErreur(e);
+  if (window.afficherErreur) window.afficherErreur(titre, detail);
+  else alert(`${titre}\n${detail}\n\nNavigateur : ${navigator.userAgent}`);
+}

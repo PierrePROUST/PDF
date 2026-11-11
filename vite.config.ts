@@ -57,7 +57,9 @@ export default defineConfig({
   // Adresse GitHub Pages : https://pierreproust.github.io/PDF/
   base: "./",
   build: {
-    target: "es2023",
+    // Appareil cible : Huawei SHT-AL09, Chrome 125 minimum (voir CLAUDE.md, « Compatibilité »).
+    // S'applique aussi au CSS (cssTarget suit build.target).
+    target: "chrome125",
     chunkSizeWarningLimit: 2000,
   },
   plugins: [serviceWorker()],

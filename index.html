@@ -11,6 +11,80 @@
     <link rel="apple-touch-icon" href="./icones/apple-touch-icon.png" />
   </head>
   <body>
+    <!--
+      Message d'erreur visible à l'écran (pas seulement dans la console), utile sur un
+      appareil sans outils de développement (tablette Huawei SHT-AL09, Chrome ancien).
+      Écrit en JavaScript « classique » (ES5) et avec des styles intégrés : il doit
+      fonctionner même si le module principal ou la feuille de style ne se chargent pas.
+    -->
+    <div id="erreur-demarrage" role="alert" hidden style="position:fixed;left:0;right:0;top:0;z-index:1000;max-height:70vh;overflow:auto;padding:16px;background:#7f1d1d;color:#fff;font:15px/1.4 system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.5)">
+      <strong id="erreur-titre" style="display:block;font-size:17px;margin-bottom:8px"></strong>
+      <pre id="erreur-detail" style="margin:0 0 8px;white-space:pre-wrap;word-break:break-word;font:13px/1.35 monospace;user-select:text;-webkit-user-select:text"></pre>
+      <pre id="erreur-navigateur" style="margin:0 0 12px;white-space:pre-wrap;word-break:break-word;font:12px/1.35 monospace;opacity:.85;user-select:text;-webkit-user-select:text"></pre>
+      <button id="erreur-fermer" type="button" style="min-height:48px;padding:0 20px;border:0;border-radius:24px;background:#fff;color:#7f1d1d;font:600 15px system-ui,sans-serif">Fermer</button>
+    </div>
+    <script>
+      (function () {
+        var CHROME_MINIMUM = 125;
+        var boite = document.getElementById("erreur-demarrage");
+        var deja = {};
+        function versionChrome() {
+          var m = /Chrome\/(\d+)/.exec(navigator.userAgent);
+          return m ? parseInt(m[1], 10) : null;
+        }
+        function afficher(titre, detail) {
+          var cle = titre + "|" + detail;
+          if (deja[cle]) return;
+          deja[cle] = true;
+          var texte = document.getElementById("erreur-detail");
+          // Plusieurs erreurs : on les cumule.
+          if (!boite.hidden && texte.textContent) {
+            texte.textContent += "\n\n" + titre + " :\n" + detail;
+          } else {
+            document.getElementById("erreur-titre").textContent = titre;
+            texte.textContent = detail || "";
+          }
+          var v = versionChrome();
+          document.getElementById("erreur-navigateur").textContent =
+            "Navigateur : " + navigator.userAgent + (v ? "\n(Chrome " + v + ")" : "");
+          boite.hidden = false;
+        }
+        window.afficherErreur = afficher;
+        document.getElementById("erreur-fermer").onclick = function () {
+          boite.hidden = true;
+        };
+        // Erreurs non interceptées, y compris une erreur de syntaxe ou d'API absente dans un module.
+        window.addEventListener(
+          "error",
+          function (e) {
+            var cible = e.target;
+            if (cible && cible !== window && cible.tagName) {
+              // Échec de chargement d'un fichier (script, feuille de style).
+              if (cible.tagName === "SCRIPT" || cible.tagName === "LINK") {
+                afficher("Un fichier de l'application n'a pas pu être chargé", cible.src || cible.href || "");
+              }
+              return;
+            }
+            var detail = e.message || "Erreur inconnue";
+            if (e.filename) detail += "\n" + e.filename + ":" + e.lineno + ":" + e.colno;
+            if (e.error && e.error.stack) detail += "\n" + e.error.stack;
+            afficher("Erreur JavaScript", detail);
+          },
+          true
+        );
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          afficher("Erreur JavaScript (promesse)", (r && (r.stack || r.message)) || String(r));
+        });
+        var v = versionChrome();
+        if (v !== null && v < CHROME_MINIMUM) {
+          afficher(
+            "Navigateur trop ancien",
+            "Chrome " + v + " détecté ; cette application vise Chrome " + CHROME_MINIMUM + " minimum. Certaines fonctions peuvent échouer."
+          );
+        }
+      })();
+    </script>
     <!-- Écran d'accueil : documents récents -->
     <section id="accueil" class="ecran">
       <header class="barre">

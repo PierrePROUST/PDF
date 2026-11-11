@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { fractionDansPage, resoudreDestination } from "./destinations";
 import type { Emplacement } from "./emplacement";
 

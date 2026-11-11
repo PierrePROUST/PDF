@@ -1,7 +1,7 @@
 import { chargerDocument } from "./pdfjs";
-import { EventBus, LinkTarget, PDFLinkService, PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
-import "pdfjs-dist/web/pdf_viewer.css";
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import { EventBus, LinkTarget, PDFLinkService, PDFViewer } from "pdfjs-dist/legacy/web/pdf_viewer.mjs";
+import "pdfjs-dist/legacy/web/pdf_viewer.css";
+import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { resoudreDestination } from "./destinations";
 import type { Emplacement } from "./emplacement";
 

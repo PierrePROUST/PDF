@@ -48,6 +48,15 @@ Identifiant du document = empreinte du contenu (hash SHA-256 via `crypto.subtle`
 - Stockage local : **IndexedDB** (signets perso, dernière position, liste des récents, **copie du PDF** pour pouvoir le rouvrir depuis les récents — sur Android une PWA ne peut pas garder d'accès permanent au fichier d'origine). Demander `navigator.storage.persist()` et afficher l'espace utilisé. Permettre de supprimer un document de la liste (et sa copie).
 - Pas de serveur, pas d'envoi de données : tout reste sur le téléphone.
 
+## Compatibilité
+
+- **Appareil cible : tablette Huawei SHT-AL09** (Android ancien, sans services Google à jour : Chrome peut y rester bloqué sur une ancienne version).
+- **Chrome 125 minimum.** Toute API web ou fonction JavaScript/CSS utilisée doit exister dans Chrome 125 pour Android (vérifier dans les données de compatibilité MDN, `@mdn/browser-compat-data`). Sinon : s'arrêter et le signaler.
+- **PDF.js legacy obligatoire** : importer uniquement `pdfjs-dist/legacy/build/pdf.mjs`, `pdfjs-dist/legacy/build/pdf.worker.min.mjs`, `pdfjs-dist/legacy/web/pdf_viewer.mjs` et `pdfjs-dist/legacy/web/pdf_viewer.css`. La version « moderne » appelle directement des API absentes des Chrome anciens (`Map.prototype.getOrInsertComputed`, `Math.sumPrecise`, `Uint8Array.fromBase64`…) ; la version legacy contient les polyfills (FAQ PDF.js : legacy = Chrome 125+).
+- Vite : `build.target: "chrome125"` (s'applique aussi au CSS). Ne pas le relever.
+- Toute erreur au démarrage (PDF.js, service worker, script) doit s'afficher **à l'écran** avec le texte de l'erreur et `navigator.userAgent` (bandeau rouge d'`index.html`, fonction `afficherErreur`) : la tablette n'a pas d'outils de développement.
+- Ne jamais écrire « testé sur la tablette » sans que l'utilisateur l'ait fait : préciser à chaque fois ce qui a été testé, avec quel navigateur et quelle version.
+
 ## Ouverture des fichiers sur Android
 
 - L'API **File Handling** (`file_handlers` dans le manifeste) n'est **pas prise en charge sur Android** d'après les annonces Chromium consultées : ne pas compter dessus pour « Ouvrir avec ». Vérifier si cela a changé ; sinon ne pas l'utiliser.

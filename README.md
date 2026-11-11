@@ -23,6 +23,13 @@ PWA de lecture de PDF pour Android (Chrome) : table des matières, signets perso
 
 Non disponible en V1 : annotations, édition, formulaires, recherche plein texte. « Ouvrir avec » n'est pas possible : l'API File Handling n'existe pas sur Chrome Android ([étude](docs/etude.md)).
 
+## Compatibilité
+
+- Appareil cible : tablette **Huawei SHT-AL09**. **Chrome 125 minimum.**
+- PDF.js est importé en version **legacy** (`pdfjs-dist/legacy/…`), qui contient les polyfills des API absentes des Chrome anciens (`Map.prototype.getOrInsertComputed`, `Math.sumPrecise`…).
+- Limite dure : même en legacy, PDF.js dimensionne les pages avec la fonction CSS `round()`, disponible seulement depuis Chrome 125. En dessous, les pages s'affichent écrasées.
+- En cas d'erreur au démarrage (script, PDF.js, service worker) ou de Chrome < 125, un **bandeau rouge** affiche l'erreur et la version du navigateur.
+
 ## Vérifications faites
 
 Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l'émulation d'un **Pixel 7** (écran tactile, mode portrait). **Aucun test n'a encore été fait sur un vrai téléphone Android.**

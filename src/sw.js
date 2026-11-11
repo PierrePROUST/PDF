@@ -11,8 +11,17 @@ const CACHE_PARTAGE = "pdfapp-partage";
 self.addEventListener("install", (evenement) => {
   evenement.waitUntil(
     (async () => {
-      const cache = await caches.open(CACHE);
-      await cache.addAll(FICHIERS);
+      try {
+        const cache = await caches.open(CACHE);
+        await cache.addAll(FICHIERS);
+      } catch (erreur) {
+        // Prévient les pages ouvertes pour qu'elles affichent l'erreur à l'écran.
+        const message = `${erreur && erreur.stack ? erreur.stack : erreur}\nNavigateur : ${self.navigator.userAgent}`;
+        for (const client of await self.clients.matchAll({ includeUncontrolled: true })) {
+          client.postMessage({ type: "erreur-sw", message });
+        }
+        throw erreur;
+      }
       await self.skipWaiting();
     })(),
   );
