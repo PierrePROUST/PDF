@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detecterColonnes, indexColonne, type MorceauTexte } from "../src/colonnes";
+import { detecterColonnes, indexColonne, sortieDeColonne, type MorceauTexte } from "../src/colonnes";
 
 /** Lignes de texte d'une colonne : une ligne par morceau, comme le fait souvent PDF.js. */
 function lignes(x: number, largeur: number, nb: number, debutY = 0.08): MorceauTexte[] {
@@ -76,5 +76,37 @@ describe("indexColonne", () => {
     expect(indexColonne(cols, 0.49)).toBe(0);
     expect(indexColonne(cols, 0.51)).toBe(1);
     expect(indexColonne(cols, 0.9)).toBe(1);
+  });
+});
+
+describe("sortieDeColonne", () => {
+  // Page de 2000 px commençant à 1000 px, écran de 800 px, colonne de 10 % à 60 % de la page.
+  const col = { x0: 0.05, x1: 0.48, y0: 0.1, y1: 0.6 };
+  const pleine = { x0: 0.05, x1: 0.48, y0: 0.02, y1: 0.98 };
+
+  it("ne fait rien tant que la colonne se lit", () => {
+    expect(sortieDeColonne(col, 1000, 2000, 1500, 800, 1)).toBe(false);
+    expect(sortieDeColonne(col, 1000, 2000, 1500, 800, -1)).toBe(false);
+  });
+
+  it("vers le bas : enchaîne quand la fin de la colonne atteint le milieu de l'écran", () => {
+    // Fin de colonne à 2200 px ; seuil : bas de l'écran à 2600 px, soit haut à 1800 px.
+    expect(sortieDeColonne(col, 1000, 2000, 1790, 800, 1)).toBe(false);
+    expect(sortieDeColonne(col, 1000, 2000, 1800, 800, 1)).toBe(true);
+  });
+
+  it("vers le bas : ne dépasse jamais le bas de la page", () => {
+    // Bas de la page à 3000 px : bas de l'écran atteint à 2200 px.
+    expect(sortieDeColonne(pleine, 1000, 2000, 2190, 800, 1)).toBe(false);
+    expect(sortieDeColonne(pleine, 1000, 2000, 2200, 800, 1)).toBe(true);
+  });
+
+  it("vers le haut : enchaîne au-dessus du début de la colonne, sans dépasser le haut de la page", () => {
+    // Début de colonne à 1200 px ; le seuil (800 px) est borné au haut de la page (1000 px).
+    expect(sortieDeColonne(col, 1000, 2000, 1010, 800, -1)).toBe(false);
+    expect(sortieDeColonne(col, 1000, 2000, 1000, 800, -1)).toBe(true);
+    const basse = { ...col, y0: 0.5 }; // début à 2000 px, seuil à 1600 px
+    expect(sortieDeColonne(basse, 1000, 2000, 1610, 800, -1)).toBe(false);
+    expect(sortieDeColonne(basse, 1000, 2000, 1600, 800, -1)).toBe(true);
   });
 });

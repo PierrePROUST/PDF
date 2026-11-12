@@ -1,16 +1,20 @@
 /**
  * Mode « lecture en colonnes » pour les PDF en deux colonnes (règles de jeu, articles…).
  *
- * - Zoom pour qu'une colonne occupe la largeur de l'écran.
- * - Colonne suivante / précédente : boutons ◂ ▸ ou balayage horizontal.
- *   Ordre de lecture : colonne gauche → colonne droite → colonne gauche de la page suivante.
+ * - Zoom pour qu'une colonne occupe la largeur de l'écran ; le pincement reste possible pour
+ *   grossir ou réduire à l'intérieur de la colonne en cours.
+ * - Ordre de lecture : colonne gauche → colonne droite → colonne gauche de la page suivante.
+ *   En défilant, arriver en bas d'une colonne amène en haut de la suivante (et en haut d'une
+ *   colonne, en bas de la précédente) : on ne change jamais de page en restant du même côté.
+ * - Balayage horizontal : colonne suivante / précédente (sauf quand la colonne est grossie
+ *   au-delà de la largeur de l'écran : le doigt sert alors à se déplacer dans la colonne).
  * - Les colonnes sont détectées à partir des positions du texte (page.getTextContent()).
  *   Page sans colonnes détectées (figure, tableau pleine largeur) : on la parcourt en deux
  *   moitiés gauche / droite.
  * - Passer d'une colonne à l'autre n'est pas un « saut » : rien n'est ajouté à l'historique.
  */
 import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { detecterColonnes, indexColonne, type Colonne, type MorceauTexte } from "./colonnes";
+import { detecterColonnes, indexColonne, sortieDeColonne, type Colonne, type MorceauTexte } from "./colonnes";
 import { pdfjsLib } from "./pdfjs";
 import type { Visionneuse } from "./visionneuse";
 
@@ -41,14 +45,36 @@ export class ModeColonnes {
   private cache = new Map<number, Promise<Paire | null>>();
   private largeurColonne: number | null = null;
   private generation = 0;
+  /** Échelle pour laquelle une colonne occupe exactement la largeur de l'écran. */
+  private zoomAjuste: number | null = null;
+  /** Dernière position verticale connue (null = à ne pas comparer : zoom, placement). */
+  private dernierHaut: number | null = null;
+  private pincement = false;
+  private transition = false;
+  private largeurEcran = 0;
 
   constructor(
     private readonly vision: Visionneuse,
     private readonly rappels: { surChangement(actif: boolean): void },
   ) {
     this.installerBalayage();
+    this.installerEnchainement();
+    this.largeurEcran = vision.conteneur.clientWidth;
     window.addEventListener("resize", () => {
-      if (this.actif) void this.ajusterZoom().then(() => this.recaler());
+      const largeur = this.vision.conteneur.clientWidth;
+      // Clavier qui s'ouvre, barre d'adresse : la largeur ne change pas, on ne touche à rien.
+      if (largeur === this.largeurEcran) return;
+      this.largeurEcran = largeur;
+      if (!this.actif) return;
+      // Zoom choisi au pincement : on le garde ; sinon la colonne suit la nouvelle largeur.
+      const personnalise = this.zoomAjuste !== null && Math.abs(this.vision.vue.currentScale / this.zoomAjuste - 1) > 0.02;
+      this.zoomAjuste = null;
+      void (personnalise ? this.calculerZoomAjuste().then(() => this.majColonneLarge()) : this.ajusterZoom()).then(() =>
+        this.recaler(),
+      );
+    });
+    vision.bus.on("scalechanging", () => {
+      this.dernierHaut = null;
     });
   }
 
@@ -58,6 +84,8 @@ export class ModeColonnes {
     this.doc = doc;
     this.cache.clear();
     this.largeurColonne = null;
+    this.zoomAjuste = null;
+    this.dernierHaut = null;
     this.basculerAffichage(false);
   }
 
@@ -142,6 +170,9 @@ export class ModeColonnes {
     if (recadrer) {
       await this.ajusterZoom();
       await this.recaler();
+    } else {
+      await this.calculerZoomAjuste();
+      this.majColonneLarge();
     }
   }
 
@@ -155,21 +186,42 @@ export class ModeColonnes {
     const change = actif !== this.actif;
     this.actif = actif;
     this.vision.conteneur.classList.toggle("mode-colonnes", actif);
+    if (!actif) this.vision.conteneur.classList.remove("colonne-large");
+    this.dernierHaut = null;
     if (change) this.rappels.surChangement(actif);
   }
 
-  /** Zoom pour qu'une colonne typique occupe la largeur de l'écran. */
-  private async ajusterZoom(): Promise<void> {
+  /** Échelle pour laquelle une colonne typique occupe la largeur de l'écran. */
+  private async calculerZoomAjuste(): Promise<number | null> {
     if (!this.largeurColonne) {
       // Aucune colonne détectée : moitié de la largeur de la page courante.
       const page = await this.doc?.getPage(this.pageAuCentre() + 1);
-      if (!page) return;
+      if (!page) return null;
       this.largeurColonne = (page.view[2] - page.view[0]) / 2;
     }
     const largeurEcran = this.vision.conteneur.clientWidth - 2 * MARGE;
     const echelle = largeurEcran / (this.largeurColonne * pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS);
+    this.zoomAjuste = Math.min(6, Math.max(0.25, echelle));
+    return this.zoomAjuste;
+  }
+
+  /** Zoom pour qu'une colonne typique occupe la largeur de l'écran. */
+  private async ajusterZoom(): Promise<void> {
+    const zoom = await this.calculerZoomAjuste();
+    if (zoom === null) return;
     const emp = this.vision.emplacement();
-    this.vision.allerA({ ...emp, zoom: Math.min(6, Math.max(0.25, echelle)), x: undefined });
+    this.vision.allerA({ ...emp, zoom, x: undefined });
+    this.majColonneLarge();
+  }
+
+  /** Vrai si la colonne est grossie au-delà de la largeur de l'écran (zoom au pincement). */
+  private colonneLarge(): boolean {
+    return this.actif && this.zoomAjuste !== null && this.vision.vue.currentScale > this.zoomAjuste * 1.02;
+  }
+
+  /** Colonne plus large que l'écran : le défilement horizontal au doigt est autorisé. */
+  private majColonneLarge(): void {
+    this.vision.conteneur.classList.toggle("colonne-large", this.colonneLarge());
   }
 
   private pageAuCentre(): number {
@@ -202,6 +254,68 @@ export class ModeColonnes {
     const yHaut = haut + col.y0 * div.clientHeight - MARGE;
     const yBas = haut + col.y1 * div.clientHeight + MARGE - c.clientHeight;
     c.scrollTop = alignement === "bas" && yBas > yHaut ? yBas : yHaut;
+    this.dernierHaut = c.scrollTop;
+  }
+
+  /**
+   * Enchaînement des colonnes au défilement : en bas d'une colonne, on arrive en haut de la
+   * suivante ; en haut d'une colonne, en bas de la précédente.
+   */
+  private installerEnchainement(): void {
+    const c = this.vision.conteneur;
+    c.addEventListener(
+      "scroll",
+      () => {
+        const haut = c.scrollTop;
+        const avant = this.dernierHaut;
+        this.dernierHaut = haut;
+        if (!this.actif || !this.doc || avant === null || this.pincement || this.transition) return;
+        const delta = haut - avant;
+        // Un grand déplacement d'un coup est un saut (lien, signet, retour), pas un défilement.
+        if (delta === 0 || Math.abs(delta) > c.clientHeight) return;
+        void this.enchainer(this.vision.pageALaHauteur(avant + c.clientHeight / 2), delta > 0 ? 1 : -1);
+      },
+      { passive: true },
+    );
+  }
+
+  private async enchainer(page: number, sens: 1 | -1): Promise<void> {
+    const c = this.vision.conteneur;
+    const generation = this.generation;
+    this.transition = true;
+    try {
+      const colonnes = await this.colonnesOuMoities(page);
+      if (generation !== this.generation || !this.actif) return;
+      const div = this.vision.divPage(page);
+      // Page entière visible à l'écran (zoom très réduit) : rien à enchaîner.
+      if (div.clientHeight <= c.clientHeight) return;
+      const index = indexColonne(colonnes, this.xCentre(page));
+      const sortie = sortieDeColonne(
+        colonnes[index],
+        div.offsetTop + div.clientTop,
+        div.clientHeight,
+        c.scrollTop,
+        c.clientHeight,
+        sens,
+      );
+      if (!sortie) return;
+      const pageCible = sens === 1 ? (index === 0 ? page : page + 1) : index === 1 ? page : page - 1;
+      if (pageCible < 0 || pageCible >= this.vision.nbPages) return;
+      // Arrête l'élan du défilement, sinon il continuerait dans la nouvelle colonne.
+      c.style.overflow = "hidden";
+      try {
+        const cible = pageCible === page ? colonnes : await this.colonnesOuMoities(pageCible);
+        if (generation !== this.generation || !this.actif) return;
+        this.placer(pageCible, cible, index === 0 ? 1 : 0, sens === 1 ? "haut" : "bas");
+      } finally {
+        requestAnimationFrame(() => {
+          c.style.overflow = "";
+          this.dernierHaut = c.scrollTop;
+        });
+      }
+    } finally {
+      this.transition = false;
+    }
   }
 
   /** Colonne suivante (sens 1) ou précédente (sens -1). */
@@ -235,6 +349,7 @@ export class ModeColonnes {
       "touchstart",
       (ev) => {
         depart = ev.touches.length === 1 ? { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: Date.now() } : null;
+        if (ev.touches.length >= 2) this.pincement = true;
       },
       { passive: true },
     );
@@ -244,7 +359,19 @@ export class ModeColonnes {
     c.addEventListener(
       "touchend",
       (ev) => {
-        if (!this.actif || !depart || ev.changedTouches.length !== 1) return;
+        if (this.pincement) {
+          depart = null;
+          if (ev.touches.length > 0) return;
+          // Fin d'un zoom au pincement : on reste dans la colonne en cours.
+          this.pincement = false;
+          this.dernierHaut = null;
+          if (!this.actif) return;
+          this.majColonneLarge();
+          if (!this.colonneLarge()) void this.recaler();
+          return;
+        }
+        // Colonne grossie : le déplacement horizontal du doigt fait défiler, pas changer de colonne.
+        if (!this.actif || !depart || ev.changedTouches.length !== 1 || this.colonneLarge()) return;
         const dx = ev.changedTouches[0].clientX - depart.x;
         const dy = ev.changedTouches[0].clientY - depart.y;
         const rapide = Date.now() - depart.t < BALAYAGE_DUREE_MAX;
@@ -253,5 +380,9 @@ export class ModeColonnes {
       },
       { passive: true },
     );
+    c.addEventListener("touchcancel", (ev) => {
+      depart = null;
+      if (ev.touches.length === 0) this.pincement = false;
+    }, { passive: true });
   }
 }
