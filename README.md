@@ -72,6 +72,7 @@ npm run preview    # sert dist/ localement
 ### PDF de test
 
 `npm run pdf-test` régénère `pdf-test/avec-tdm.pdf` (table des matières imbriquée sur 3 niveaux, destinations nommées et explicites `XYZ`/`FitH`, liens internes, lien externe) et `pdf-test/sans-tdm.pdf`. Ils sont produits par `outils/generer-pdf-test.mjs`, sans dépendance, et appartiennent au dépôt.
+`python3 outils/generer-pdf-images.py` régénère `pdf-test/images.pdf` : une page par type d'image (Flate, JPEG RVB/CMJN/gris, JPEG 2000, transparence, grande photo), centre de chaque image en jaune.
 Pour tester la fluidité : `node outils/generer-pdf-test.mjs --gros 500 gros.pdf`.
 
 ### Déploiement
