@@ -52,17 +52,52 @@ self.addEventListener("fetch", (evenement) => {
   }
   if (requete.method !== "GET") return;
 
+  if (requete.mode === "navigate") {
+    evenement.respondWith(pageAccueil(requete));
+    return;
+  }
+  // Fichiers de l'application (noms avec empreinte, jamais modifiés) : cache d'abord, en
+  // cherchant dans TOUS les caches de l'application (une page encore ouverte peut réclamer
+  // les fichiers de la version précédente), puis réseau.
   evenement.respondWith(
-    (async () => {
-      const cache = await caches.open(CACHE);
-      if (requete.mode === "navigate") {
-        // Application monopage : toute navigation sert index.html depuis le cache.
-        return (await cache.match("./", { ignoreVary: true })) ?? fetch(requete);
-      }
-      return (await cache.match(requete, { ignoreSearch: true, ignoreVary: true })) ?? fetch(requete);
-    })(),
+    (async () =>
+      (await caches.match(requete, { ignoreSearch: true, ignoreVary: true })) ?? fetch(requete))(),
   );
 });
+
+/** Délai au-delà duquel on renonce au réseau pour la page d'accueil (réseau très lent). */
+const DELAI_RESEAU_MS = 4000;
+
+/**
+ * Page d'accueil (index.html) : RÉSEAU D'ABORD, cache seulement hors ligne.
+ * Servie depuis le cache alors qu'une nouvelle version est en ligne, elle réclamait des
+ * fichiers que GitHub Pages ne sert plus (nom avec empreinte de l'ancienne version) :
+ * page blanche avec « Un fichier de l'application n'a pas pu être chargé ».
+ */
+async function pageAccueil(requete) {
+  const arret = new AbortController();
+  const minuterie = setTimeout(() => arret.abort(), DELAI_RESEAU_MS);
+  try {
+    const reponse = await fetch(requete, { signal: arret.signal, cache: "no-cache" });
+    if (reponse.ok) {
+      // Garde la version la plus récente de la page d'accueil pour le hors-ligne.
+      if (new URL(requete.url).pathname === new URL(self.registration.scope).pathname) {
+        const cache = await caches.open(CACHE);
+        await cache.put("./", reponse.clone());
+      }
+      return reponse;
+    }
+  } catch {
+    // Hors ligne ou réseau trop lent : on se rabat sur le cache.
+  } finally {
+    clearTimeout(minuterie);
+  }
+  return (
+    (await caches.match("./", { cacheName: CACHE, ignoreVary: true })) ??
+    (await caches.match("./", { ignoreVary: true })) ??
+    fetch(requete)
+  );
+}
 
 async function recevoirPartage(requete) {
   const portee = self.registration.scope;

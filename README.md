@@ -34,6 +34,10 @@ Non disponible en V1 : annotations, édition, formulaires, recherche plein texte
 - Limite dure : même en legacy, PDF.js dimensionne les pages avec la fonction CSS `round()`, disponible seulement depuis Chrome 125. En dessous, les pages s'affichent écrasées.
 - En cas d'erreur au démarrage (script, PDF.js, service worker) ou de Chrome < 125, un **bandeau rouge** affiche l'erreur et la version du navigateur.
 
+## Mises à jour
+
+Le service worker prend la page d'accueil **sur le réseau d'abord** (le cache ne sert qu'hors ligne) : après une nouvelle publication, l'application se met à jour au rechargement suivant. Si un fichier manque malgré tout, la page se recharge automatiquement une fois avant d'afficher le bandeau d'erreur.
+
 ## Vérifications faites
 
 Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l'émulation d'un **Pixel 7** (écran tactile, mode portrait). **Aucun test n'a encore été fait sur un vrai téléphone Android.**

@@ -70,7 +70,20 @@
                     "Fichier introuvable : " + cible.src
                 );
               } else if (cible.tagName === "SCRIPT" || cible.tagName === "LINK") {
-                afficher("Un fichier de l'application n'a pas pu être chargé", cible.src || cible.href || "");
+                var adresse = cible.src || cible.href || "";
+                // Fichier d'une version précédente (page servie depuis un ancien cache) : on
+                // recharge UNE fois pour obtenir la page à jour, avant d'afficher l'erreur.
+                if (/\/assets\//.test(adresse)) {
+                  try {
+                    if (!sessionStorage.getItem("pdfapp-rechargement")) {
+                      sessionStorage.setItem("pdfapp-rechargement", "1");
+                      location.reload();
+                      return;
+                    }
+                  } catch (ignore) {}
+                }
+                afficher("Un fichier de l'application n'a pas pu être chargé", adresse +
+                  "\nEssayez de fermer puis rouvrir l'application. Si l'erreur revient, envoyez une capture de ce message.");
               }
               return;
             }
