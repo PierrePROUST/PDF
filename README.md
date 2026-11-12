@@ -21,6 +21,8 @@ PWA de lecture de PDF pour Android (Chrome) : table des matières, signets perso
 - Documents récents sur l'écran d'accueil, avec reprise à la dernière position lue. Une copie du PDF est gardée dans l'application (sur Android, une PWA ne garde pas l'accès au fichier d'origine) ; l'icône corbeille retire un document de la liste et efface sa copie et ses signets. L'espace utilisé est affiché, et le stockage persistant est demandé au premier enregistrement (étape 6).
 - Recevoir un PDF depuis une autre application : **Partager → PDF** (PWA installée uniquement, Web Share Target) (étape 6).
 
+- **Lecture en colonnes** pour les PDF en deux colonnes (livres de règles, articles) : détectée automatiquement à l'ouverture, une colonne occupe la largeur de l'écran ; ◂ ▸ ou balayage horizontal pour changer de colonne. Le bouton à deux colonnes de la barre active ou coupe le mode, et ce choix est retenu pour chaque document. Retour, signets et reprise de lecture retrouvent la bonne colonne.
+
 Non disponible en V1 : annotations, édition, formulaires, recherche plein texte. « Ouvrir avec » n'est pas possible : l'API File Handling n'existe pas sur Chrome Android ([étude](docs/etude.md)).
 
 ## Compatibilité
@@ -71,7 +73,7 @@ npm run preview    # sert dist/ localement
 
 ### PDF de test
 
-`npm run pdf-test` régénère `pdf-test/avec-tdm.pdf` (table des matières imbriquée sur 3 niveaux, destinations nommées et explicites `XYZ`/`FitH`, liens internes, lien externe) et `pdf-test/sans-tdm.pdf`. Ils sont produits par `outils/generer-pdf-test.mjs`, sans dépendance, et appartiennent au dépôt.
+`npm run pdf-test` régénère `pdf-test/avec-tdm.pdf` (table des matières imbriquée sur 3 niveaux, destinations nommées et explicites `XYZ`/`FitH`, liens internes, lien externe) et `pdf-test/sans-tdm.pdf`, ainsi que `pdf-test/deux-colonnes.pdf` (mise en page en deux colonnes, titres pleine largeur, une page de tableau pleine largeur, entrées de table des matières visant la colonne de droite). Ils sont produits par `outils/generer-pdf-test.mjs`, sans dépendance, et appartiennent au dépôt.
 `python3 outils/generer-pdf-images.py` régénère `pdf-test/images.pdf` : une page par type d'image (Flate, JPEG RVB/CMJN/gris, JPEG 2000, transparence, grande photo), centre de chaque image en jaune.
 Pour tester la fluidité : `node outils/generer-pdf-test.mjs --gros 500 gros.pdf`.
 

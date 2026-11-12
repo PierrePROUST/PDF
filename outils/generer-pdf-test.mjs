@@ -1,6 +1,6 @@
 // Génère les PDF de test du dépôt, sans aucune dépendance (PDF écrit « à la main »).
 //
-//   node outils/generer-pdf-test.mjs              → pdf-test/avec-tdm.pdf et pdf-test/sans-tdm.pdf
+//   node outils/generer-pdf-test.mjs              → pdf-test/avec-tdm.pdf, sans-tdm.pdf et deux-colonnes.pdf
 //   node outils/generer-pdf-test.mjs --gros 500 F → F : PDF de 500 pages avec table des matières (test de fluidité)
 //
 // Contenu de avec-tdm.pdf :
@@ -100,7 +100,7 @@ function construire({ nbPages, page, tdm, nommees = {} }) {
   const destExplicite = (d) => {
     const ref = `${numerosPages[d.page]} 0 R`;
     if (d.type === "FitH") return `[${ref} /FitH ${d.y}]`;
-    return `[${ref} /XYZ 0 ${d.y} null]`;
+    return `[${ref} /XYZ ${d.x ?? 0} ${d.y} null]`;
   };
   const destPdf = (d) => (typeof d === "string" ? texteLatin1(d) : destExplicite(d));
 
@@ -278,6 +278,69 @@ function documentAvecTdm() {
   return construire({ nbPages, page: (i) => contenus[i], tdm, nommees });
 }
 
+// ---------- deux-colonnes.pdf ----------
+// Mise en page de type « livre de règles » : titre pleine largeur, deux colonnes de texte,
+// une page de tableau pleine largeur (sans colonnes), et une table des matières dont
+// certaines entrées visent la colonne de droite (destination XYZ avec x = début de colonne).
+function documentDeuxColonnes() {
+  const nbPages = 6;
+  const G = 42; // bord gauche, colonne gauche
+  const D = 312; // bord gauche, colonne droite
+  const largeurCol = 241;
+  const mots = "règle unité tir moral terrain portée coût mouvement phase joueur pion case attaque défense ligne".split(" ");
+  const ligne = (graine) => {
+    let t = "";
+    for (let k = 0; t.length < 46; k++) t += (t ? " " : "") + mots[(graine * 7 + k * 3) % mots.length];
+    return t;
+  };
+  const colonne = (x, haut, bas, prefixe) => {
+    const l = [];
+    for (let y = haut, n = 1; y > bas; y -= 12, n++) l.push({ x, y, taille: 9, texte: n % 9 === 0 ? "" : `${prefixe}.${n} ${ligne(n + prefixe.length)}` });
+    return l.filter((e) => e.texte);
+  };
+  const pages = [];
+  const nommees = {};
+  const tdm = [];
+  for (let i = 0; i < nbPages; i++) {
+    const lignes = [];
+    const liens = [];
+    if (i === 3) {
+      // Page pleine largeur : tableau, pas de colonnes.
+      lignes.push({ x: G, y: 790, taille: 16, gras: true, texte: "Tableau récapitulatif (pleine largeur)" });
+      for (let r = 0; r < 40; r++) {
+        lignes.push({ x: G, y: 750 - r * 16, taille: 9, texte: `Ligne ${r + 1} — ${ligne(r)} — ${ligne(r + 5)} — ${ligne(r + 9)}`.slice(0, 120) });
+      }
+    } else {
+      lignes.push({ x: G, y: 800, taille: 15, gras: true, texte: `CHAPITRE ${i + 1} — TITRE PLEINE LARGEUR SUR LES DEUX COLONNES` });
+      lignes.push({ x: G, y: 770, taille: 11, gras: true, texte: `${i + 1}.1 Colonne gauche` });
+      lignes.push(...colonne(G, 752, 60, `G${i + 1}`));
+      lignes.push({ x: D, y: 770, taille: 11, gras: true, texte: `${i + 1}.2 Colonne droite (haut)` });
+      lignes.push(...colonne(D, 752, 430, `D${i + 1}`));
+      lignes.push({ x: D, y: 410, taille: 11, gras: true, texte: `${i + 1}.3 Colonne droite (milieu)` });
+      lignes.push(...colonne(D, 392, 60, `M${i + 1}`));
+      nommees[`c${i + 1}-3`] = { page: i, y: 425, x: D };
+      // Lien interne en colonne gauche vers la section .3 (colonne droite) de la page suivante.
+      if (i + 1 < nbPages && i + 1 !== 3) {
+        lignes.push({ x: G, y: 40, taille: 9, texte: `Voir ${i + 2}.3 (colonne droite, page ${i + 2})` });
+        liens.push({ rect: [G - 2, 36, G + largeurCol, 50], dest: `c${i + 2}-3` });
+      }
+      tdm.push({
+        titre: `Chapitre ${i + 1}`,
+        dest: { page: i, y: 842 },
+        enfants: [
+          { titre: `${i + 1}.1 Colonne gauche`, dest: { page: i, y: 785 } },
+          { titre: `${i + 1}.2 Colonne droite (haut)`, dest: { page: i, y: 785, x: D } },
+          { titre: `${i + 1}.3 Colonne droite (milieu)`, dest: `c${i + 1}-3` },
+        ],
+      });
+    }
+    lignes.push({ x: LARGEUR / 2 - 10, y: 22, taille: 9, texte: String(i + 1) });
+    pages.push({ lignes, liens });
+  }
+  tdm.splice(3, 0, { titre: "Tableau récapitulatif", dest: { page: 3, y: 842 } });
+  return construire({ nbPages, page: (i) => pages[i], tdm, nommees });
+}
+
 // ---------- sans-tdm.pdf ----------
 function documentSansTdm(nbPages = 12) {
   return construire({
@@ -325,4 +388,5 @@ if (args[0] === "--gros") {
 } else {
   await ecrire("pdf-test/avec-tdm.pdf", documentAvecTdm());
   await ecrire("pdf-test/sans-tdm.pdf", documentSansTdm());
+  await ecrire("pdf-test/deux-colonnes.pdf", documentDeuxColonnes());
 }

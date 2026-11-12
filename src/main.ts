@@ -2,6 +2,7 @@ import "./style.css";
 import type { Emplacement } from "./emplacement";
 import { empreinteSha256 } from "./hachage";
 import { Historique } from "./historique";
+import { ModeColonnes } from "./modecolonnes";
 import { ListeRecents } from "./recents";
 import { PanneauSignets } from "./signets";
 import {
@@ -10,6 +11,7 @@ import {
   enregistrerDocumentEtFichier,
   lireDocument,
   lireFichier,
+  majModeColonnes,
   majPosition,
   type DocumentEnregistre,
 } from "./stockage";
@@ -24,7 +26,47 @@ const indicateur = el<HTMLButtonElement>("indicateur-page");
 const visionneuse = new Visionneuse(el<HTMLDivElement>("conteneur-pdf"), el<HTMLDivElement>("visionneuse"), {
   avantSaut: () => enregistrerSaut(),
   surDeplacement: () => surDeplacement(),
+  apresSaut: () => void modeColonnes.recaler(),
 });
+
+// ---------- Mode lecture en colonnes (PDF en deux colonnes) ----------
+const btnColonnes = el<HTMLButtonElement>("btn-colonnes");
+const flechesColonnes = [el<HTMLButtonElement>("colonne-precedente"), el<HTMLButtonElement>("colonne-suivante")];
+const modeColonnes = new ModeColonnes(visionneuse, {
+  surChangement: (actif) => {
+    btnColonnes.setAttribute("aria-pressed", String(actif));
+    for (const f of flechesColonnes) f.hidden = !actif;
+  },
+});
+flechesColonnes[0].addEventListener("click", () => void modeColonnes.aller(-1));
+flechesColonnes[1].addEventListener("click", () => void modeColonnes.aller(1));
+btnColonnes.addEventListener("click", async () => {
+  if (!visionneuse.document) return;
+  const docId = visionneuse.docId;
+  const actif = !modeColonnes.actif;
+  if (actif) await modeColonnes.activer(true);
+  else modeColonnes.desactiver();
+  afficherMessage(actif ? "Lecture en colonnes : ◂ ▸ ou balayage pour changer de colonne" : "Page entière");
+  // Le choix est retenu pour ce document et l'emporte sur la détection automatique.
+  void majModeColonnes(docId, actif).catch((e) => console.error(e));
+});
+
+/**
+ * À l'ouverture : active le mode colonnes si l'utilisateur l'a choisi pour ce document, ou
+ * si la détection trouve deux colonnes (sauf refus explicite de l'utilisateur).
+ */
+async function demarrerModeColonnes(docId: string, connu: DocumentEnregistre | undefined): Promise<void> {
+  const choix = connu?.modeColonnes;
+  if (choix === false || !visionneuse.document) return;
+  const analyse = await modeColonnes.analyser(visionneuse.document);
+  if (visionneuse.docId !== docId) return;
+  if (choix !== true && !analyse.deuxColonnes) return;
+  // Reprise de lecture déjà zoomée sur une colonne : on garde exactement cette position.
+  const reprise = connu?.position;
+  const garderPosition = !!reprise && (reprise.x ?? 0) > 0.01;
+  await modeColonnes.activer(!garderPosition);
+  if (choix === undefined) afficherMessage("Deux colonnes détectées : lecture en colonnes (bouton ▥ pour la page entière)", 5000);
+}
 
 const tdm = new TableDesMatieres(el("arbre-tdm"), {
   sauter: (dest) => {
@@ -216,7 +258,9 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
     montrerEcran(true);
     el("titre-document").textContent = enregistrement.titre || nom;
     // PDF.js transfère le tampon au worker : on lui en donne une copie.
+    modeColonnes.reinitialiser(null);
     const doc = await visionneuse.ouvrir(new Uint8Array(octets.slice(0)), docId, connu?.position);
+    modeColonnes.reinitialiser(doc);
     const meta = await doc.getMetadata().catch(() => null);
     const titre = (meta?.info as { Title?: string } | undefined)?.Title?.trim() || undefined;
     if (titre) el("titre-document").textContent = titre;
@@ -227,6 +271,7 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
     }
     void tdm.charger(doc).then(() => tdm.majCourante(visionneuse.emplacement()));
     void signets.charger(docId);
+    void demarrerModeColonnes(docId, connu).catch((e) => console.warn("Mode colonnes :", e));
   } catch (e) {
     if (entreeAjoutee) history.back();
     afficherErreur(`Impossible d'ouvrir « ${nom} » (PDF.js)`, e);
@@ -313,6 +358,7 @@ async function fermerDocument(): Promise<void> {
   historique.vider();
   majBoutonsHistorique();
   montrerEcran(false);
+  modeColonnes.reinitialiser(null);
   void recents.afficher();
   await visionneuse.fermer();
 }

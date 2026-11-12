@@ -16,6 +16,8 @@ export interface DocumentEnregistre {
   nbPages?: number;
   ouvertLe: number;
   position?: Emplacement;
+  /** Choix explicite de l'utilisateur pour le mode colonnes (absent : détection automatique). */
+  modeColonnes?: boolean;
 }
 
 export interface Signet {
@@ -101,6 +103,14 @@ export async function majPosition(id: string, position: Emplacement): Promise<vo
   const store = tx.objectStore("documents");
   const doc = (await attendre(store.get(id))) as DocumentEnregistre | undefined;
   if (doc) store.put({ ...doc, position });
+  await fin(tx);
+}
+
+export async function majModeColonnes(id: string, modeColonnes: boolean): Promise<void> {
+  const tx = (await base()).transaction("documents", "readwrite");
+  const store = tx.objectStore("documents");
+  const doc = (await attendre(store.get(id))) as DocumentEnregistre | undefined;
+  if (doc) store.put({ ...doc, modeColonnes });
   await fin(tx);
 }
 

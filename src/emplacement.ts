@@ -11,6 +11,12 @@ export interface Emplacement {
   fraction: number;
   /** Niveau de zoom (échelle PDF.js, 1 = 100 %). */
   zoom: number;
+  /**
+   * Décalage horizontal du bord gauche de l'écran dans la page, fraction de 0 (bord gauche)
+   * à 1 (bord droit) : retrouve la bonne colonne en mode colonnes. Absent des emplacements
+   * enregistrés avant son ajout : la position horizontale n'est alors pas modifiée.
+   */
+  x?: number;
 }
 
 export function memeEndroit(a: Emplacement, b: Emplacement): boolean {

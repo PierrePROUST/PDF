@@ -30,8 +30,9 @@ Hors périmètre V1 : annotations, édition, formulaires, recherche plein texte 
 
 ## Définition précise de « l'emplacement »
 
-Un emplacement = `(identifiant du document, index de page, décalage vertical dans la page en fraction 0..1, niveau de zoom)`.
-C'est cette structure qui est empilée dans l'historique de navigation et enregistrée dans les signets perso. Le retour doit me remettre au même endroit visuel, pas seulement au début de la page.
+Un emplacement = `(identifiant du document, index de page, décalage vertical dans la page en fraction 0..1, niveau de zoom, décalage horizontal dans la page en fraction 0..1)`.
+C'est cette structure qui est empilée dans l'historique de navigation et enregistrée dans les signets perso. Le retour doit me remettre au même endroit visuel, pas seulement au début de la page — y compris dans la bonne colonne en mode colonnes.
+Le décalage horizontal (`x`) a été ajouté le 12 novembre 2026 : les emplacements enregistrés avant n'en ont pas, la position horizontale n'est alors pas modifiée.
 
 Identifiant du document = empreinte du contenu (hash SHA-256 via `crypto.subtle`), pour que mes signets suivent le fichier même s'il est rouvert depuis un autre endroit.
 
@@ -56,6 +57,13 @@ Identifiant du document = empreinte du contenu (hash SHA-256 via `crypto.subtle`
 - Vite : `build.target: "chrome125"` (s'applique aussi au CSS). Ne pas le relever.
 - Toute erreur au démarrage (PDF.js, service worker, script) doit s'afficher **à l'écran** avec le texte de l'erreur et `navigator.userAgent` (bandeau rouge d'`index.html`, fonction `afficherErreur`) : la tablette n'a pas d'outils de développement.
 - Ne jamais écrire « testé sur la tablette » sans que l'utilisateur l'ait fait : préciser à chaque fois ce qui a été testé, avec quel navigateur et quelle version.
+
+## Lecture en colonnes (PDF en deux colonnes)
+
+- Détection automatique à l'ouverture (positions du texte, `page.getTextContent()`, sur quelques pages réparties dans le document) ; si le document est en deux colonnes, le mode s'active tout seul.
+- Bouton « Lecture en colonnes » dans la barre : active/désactive ; ce choix est **mémorisé par document** et l'emporte ensuite sur la détection.
+- Zoom pour qu'une colonne occupe la largeur de l'écran ; ◂ ▸ ou balayage horizontal pour passer à la colonne précédente/suivante (gauche → droite → page suivante). Page sans colonnes détectées : parcours en deux moitiés.
+- Changer de colonne n'est **pas** un saut (rien dans l'historique). Après un saut (table des matières, lien interne, numéro de page), l'écran se recale sur la colonne visée.
 
 ## Ouverture des fichiers sur Android
 

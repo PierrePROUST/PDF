@@ -17,6 +17,8 @@ const DELAI_RENDU_PINCEMENT = 400;
 class ServiceLiens extends PDFLinkService {
   /** Appelé juste avant un saut, quand la destination est valide. */
   avantSaut: () => void = () => {};
+  /** Appelé juste après le défilement vers la destination. */
+  apresSaut: () => void = () => {};
 
   override async goToDestination(dest: string | unknown[]): Promise<void> {
     const doc = this.pdfDocument as PDFDocumentProxy | null;
@@ -33,6 +35,7 @@ class ServiceLiens extends PDFLinkService {
       // Sur téléphone, on garde le zoom choisi par l'utilisateur.
       ignoreDestinationZoom: true,
     });
+    this.apresSaut();
   }
 
   override goToPage(val: number | string): void {
@@ -40,6 +43,7 @@ class ServiceLiens extends PDFLinkService {
     if (!(Number.isInteger(n) && n >= 1 && n <= this.pagesCount)) return;
     this.avantSaut();
     this.pdfViewer.scrollPageIntoView({ pageNumber: n });
+    this.apresSaut();
   }
 }
 
@@ -48,6 +52,8 @@ export interface RappelsVisionneuse {
   avantSaut(): void;
   /** Après tout défilement, zoom ou changement de page. */
   surDeplacement(): void;
+  /** Juste après un saut par lien ou numéro de page (recalage sur une colonne). */
+  apresSaut?(): void;
 }
 
 export class Visionneuse {
@@ -58,7 +64,7 @@ export class Visionneuse {
   docId = "";
 
   constructor(
-    private readonly conteneur: HTMLDivElement,
+    readonly conteneur: HTMLDivElement,
     visionneuse: HTMLDivElement,
     rappels: RappelsVisionneuse,
   ) {
@@ -68,6 +74,7 @@ export class Visionneuse {
       externalLinkRel: "noopener noreferrer",
     });
     this.liens.avantSaut = () => rappels.avantSaut();
+    this.liens.apresSaut = () => rappels.apresSaut?.();
     this.vue = new PDFViewer({
       container: conteneur,
       viewer: visionneuse,
@@ -120,11 +127,13 @@ export class Visionneuse {
     const page = this.pageA(haut);
     const div = this.nbPages > 0 ? this.divPage(page) : null;
     const fraction = div && div.offsetHeight > 0 ? (haut - div.offsetTop) / div.offsetHeight : 0;
+    const x = div && div.offsetWidth > 0 ? (this.conteneur.scrollLeft - div.offsetLeft) / div.offsetWidth : 0;
     return {
       docId: this.docId,
       page,
       fraction: Math.min(1, Math.max(0, fraction)),
       zoom: this.vue.currentScale,
+      x: Math.min(1, Math.max(0, x)),
     };
   }
 
@@ -136,6 +145,11 @@ export class Visionneuse {
   pageLue(): number {
     if (!this.nbPages) return 0;
     return this.pageA(this.conteneur.scrollTop + this.conteneur.clientHeight / 4) + 1;
+  }
+
+  /** Index de la page (à partir de 0) affichée à la hauteur y du contenu défilant. */
+  pageALaHauteur(y: number): number {
+    return this.nbPages ? this.pageA(y) : 0;
   }
 
   /** Index de la dernière page dont le haut est au-dessus de la position y (recherche dichotomique). */
@@ -158,6 +172,7 @@ export class Visionneuse {
     const placer = () => {
       const div = this.divPage(e.page);
       this.conteneur.scrollTop = div.offsetTop + e.fraction * div.offsetHeight;
+      if (e.x !== undefined) this.conteneur.scrollLeft = div.offsetLeft + e.x * div.offsetWidth;
     };
     placer();
     // Le changement d'échelle peut repositionner la vue au prochain cadre : on recale.
@@ -181,7 +196,8 @@ export class Visionneuse {
     this.liens.goToPage(numero);
   }
 
-  private divPage(index: number): HTMLDivElement {
+  /** Élément d'une page (index à partir de 0). */
+  divPage(index: number): HTMLDivElement {
     return this.vue.getPageView(index).div as HTMLDivElement;
   }
 
