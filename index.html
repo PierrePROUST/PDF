@@ -60,7 +60,16 @@
             var cible = e.target;
             if (cible && cible !== window && cible.tagName) {
               // Échec de chargement d'un fichier (script, feuille de style).
-              if (cible.tagName === "SCRIPT" || cible.tagName === "LINK") {
+              if (cible.tagName === "SCRIPT" && /\/src\/main\.ts$/.test(cible.src || "")) {
+                // index.html non compilé : GitHub Pages publie les sources au lieu du build.
+                afficher(
+                  "Site mal publié : sources non compilées",
+                  "GitHub Pages sert les fichiers sources au lieu de l'application compilée.\n" +
+                    "Correction : dépôt PDF sur GitHub → Settings → Pages → Build and deployment → " +
+                    "Source : « GitHub Actions », puis Actions → « Déploiement GitHub Pages » → Run workflow.\n" +
+                    "Fichier introuvable : " + cible.src
+                );
+              } else if (cible.tagName === "SCRIPT" || cible.tagName === "LINK") {
                 afficher("Un fichier de l'application n'a pas pu être chargé", cible.src || cible.href || "");
               }
               return;
