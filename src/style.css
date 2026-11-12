@@ -439,37 +439,13 @@ dialog input {
   touch-action: pan-y;
 }
 
+/* Colonne grossie au pincement, plus large que l'écran : on peut s'y déplacer en tous sens. */
+#conteneur-pdf.mode-colonnes.colonne-large {
+  touch-action: pan-x pan-y;
+}
+
 .icone[aria-pressed="true"] {
   background: rgb(127 127 127 / 0.3);
-}
-
-.fleche-colonne {
-  position: absolute;
-  bottom: calc(16px + env(safe-area-inset-bottom));
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgb(31 41 51 / 0.85);
-  color: #fff;
-  cursor: pointer;
-}
-
-.fleche-colonne svg {
-  width: 32px;
-  height: 32px;
-  fill: currentColor;
-}
-
-.fleche-gauche {
-  left: 12px;
-}
-
-.fleche-droite {
-  right: 12px;
 }
 
 .detail-espace {

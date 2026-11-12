@@ -31,22 +31,18 @@ const visionneuse = new Visionneuse(el<HTMLDivElement>("conteneur-pdf"), el<HTML
 
 // ---------- Mode lecture en colonnes (PDF en deux colonnes) ----------
 const btnColonnes = el<HTMLButtonElement>("btn-colonnes");
-const flechesColonnes = [el<HTMLButtonElement>("colonne-precedente"), el<HTMLButtonElement>("colonne-suivante")];
 const modeColonnes = new ModeColonnes(visionneuse, {
   surChangement: (actif) => {
     btnColonnes.setAttribute("aria-pressed", String(actif));
-    for (const f of flechesColonnes) f.hidden = !actif;
   },
 });
-flechesColonnes[0].addEventListener("click", () => void modeColonnes.aller(-1));
-flechesColonnes[1].addEventListener("click", () => void modeColonnes.aller(1));
 btnColonnes.addEventListener("click", async () => {
   if (!visionneuse.document) return;
   const docId = visionneuse.docId;
   const actif = !modeColonnes.actif;
   if (actif) await modeColonnes.activer(true);
   else modeColonnes.desactiver();
-  afficherMessage(actif ? "Lecture en colonnes : ◂ ▸ ou balayage pour changer de colonne" : "Page entière");
+  afficherMessage(actif ? "Lecture en colonnes : en bas d'une colonne, on passe à la suivante" : "Page entière");
   // Le choix est retenu pour ce document et l'emporte sur la détection automatique.
   void majModeColonnes(docId, actif).catch((e) => console.error(e));
 });

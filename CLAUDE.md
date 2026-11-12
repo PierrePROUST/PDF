@@ -62,7 +62,9 @@ Identifiant du document = empreinte du contenu (hash SHA-256 via `crypto.subtle`
 
 - Détection automatique à l'ouverture (positions du texte, `page.getTextContent()`, sur quelques pages réparties dans le document) ; si le document est en deux colonnes, le mode s'active tout seul.
 - Bouton « Lecture en colonnes » dans la barre : active/désactive ; ce choix est **mémorisé par document** et l'emporte ensuite sur la détection.
-- Zoom pour qu'une colonne occupe la largeur de l'écran ; ◂ ▸ ou balayage horizontal pour passer à la colonne précédente/suivante (gauche → droite → page suivante). Page sans colonnes détectées : parcours en deux moitiés.
+- Zoom pour qu'une colonne occupe la largeur de l'écran. Ordre de lecture : gauche → droite → page suivante. Page sans colonnes détectées : parcours en deux moitiés.
+- Défilement vertical : arrivé en bas d'une colonne, on passe en haut de la colonne suivante (jamais à la même colonne de la page suivante) ; en remontant, en bas de la colonne précédente. Le balayage horizontal change aussi de colonne. **Pas de flèches ◂ ▸** (supprimées le 12 novembre 2026).
+- Le zoom par pincement reste possible en mode colonnes, dans la colonne en cours ; colonne plus large que l'écran : déplacement libre au doigt, balayage coupé.
 - Changer de colonne n'est **pas** un saut (rien dans l'historique). Après un saut (table des matières, lien interne, numéro de page), l'écran se recale sur la colonne visée.
 
 ## Ouverture des fichiers sur Android

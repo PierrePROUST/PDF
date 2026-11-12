@@ -94,3 +94,28 @@ export function indexColonne(colonnes: [Colonne, Colonne], x: number): 0 | 1 {
   const separation = (colonnes[0].x1 + colonnes[1].x0) / 2;
   return x < separation ? 0 : 1;
 }
+
+/**
+ * Défilement vertical en lecture en colonnes : vrai si l'écran a dépassé la fin de la colonne
+ * (sens 1, vers le bas) ou son début (sens -1, vers le haut), et qu'il faut donc enchaîner sur
+ * la colonne suivante ou précédente.
+ *
+ * On laisse le bout de la colonne remonter jusqu'au milieu de l'écran (pour finir de lire, et
+ * voir un titre ou une note pleine largeur), sans jamais dépasser le bord de la page.
+ * Positions en pixels dans le contenu défilant.
+ */
+export function sortieDeColonne(
+  colonne: Colonne,
+  hautPage: number,
+  hauteurPage: number,
+  hautEcran: number,
+  hauteurEcran: number,
+  sens: 1 | -1,
+): boolean {
+  if (sens === 1) {
+    const seuil = Math.min(hautPage + hauteurPage, hautPage + colonne.y1 * hauteurPage + hauteurEcran / 2);
+    return hautEcran + hauteurEcran >= seuil - 1;
+  }
+  const seuil = Math.max(hautPage, hautPage + colonne.y0 * hauteurPage - hauteurEcran / 2);
+  return hautEcran <= seuil + 1;
+}
