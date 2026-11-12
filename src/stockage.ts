@@ -163,3 +163,75 @@ export async function espaceUtilise(): Promise<{ utilise: number; quota: number;
   const persistant = (await navigator.storage.persisted?.()) ?? false;
   return { utilise: usage, quota, persistant };
 }
+
+// ---------- Détail de l'espace (site partagé avec d'autres applications) ----------
+//
+// navigator.storage.estimate() mesure TOUT le site pierreproust.github.io : il est partagé
+// avec d'autres PWA (ancien LecteurPDF, VASLweb…). On détaille donc par application.
+
+/** Ancienne application LecteurPDF, remplacée par PDF : base IndexedDB, caches, service worker. */
+const ANCIEN_LECTEURPDF = { base: "lecteurpdf", prefixeCache: "lecteurpdf-", portee: "/LecteurPDF/" };
+
+export interface LigneEspace {
+  libelle: string;
+  octets: number;
+}
+
+async function tailleCache(nom: string): Promise<number> {
+  const cache = await caches.open(nom);
+  let total = 0;
+  for (const requete of await cache.keys()) {
+    const reponse = await cache.match(requete);
+    if (!reponse) continue;
+    const longueur = Number(reponse.headers.get("Content-Length"));
+    total += longueur > 0 ? longueur : (await reponse.blob()).size;
+  }
+  return total;
+}
+
+async function baseExiste(nom: string): Promise<boolean> {
+  // indexedDB.databases() : Chrome 71+. Ne jamais ouvrir une base pour tester : cela la créerait.
+  if (!indexedDB.databases) return false;
+  return (await indexedDB.databases()).some((b) => b.name === nom);
+}
+
+/** Taille des caches par application, et des copies de PDF gardées par PDF. */
+export async function detailEspace(): Promise<{ lignes: LigneEspace[]; ancienLecteurPdf: boolean }> {
+  const groupes = new Map<string, number>();
+  const ajouter = (libelle: string, octets: number) => groupes.set(libelle, (groupes.get(libelle) ?? 0) + octets);
+  let ancienLecteurPdf = false;
+  for (const nom of await caches.keys()) {
+    const taille = await tailleCache(nom);
+    if (nom.startsWith("pdfapp-")) ajouter("PDF : l'application (hors ligne)", taille);
+    else if (nom.startsWith(ANCIEN_LECTEURPDF.prefixeCache)) {
+      ancienLecteurPdf = true;
+      ajouter("Ancien LecteurPDF (caches)", taille);
+    } else if (nom.startsWith("vaslweb-")) ajouter("VASLweb / Vaslwebtest (caches)", taille);
+    else ajouter("Autres caches du site", taille);
+  }
+  const docs = await listerDocuments().catch(() => []);
+  ajouter("PDF : copies des documents", docs.reduce((t, d) => t + d.taille, 0));
+  if (await baseExiste(ANCIEN_LECTEURPDF.base)) ancienLecteurPdf = true;
+  return { lignes: [...groupes].map(([libelle, octets]) => ({ libelle, octets })), ancienLecteurPdf };
+}
+
+/** Efface tout ce qui reste de l'ancien LecteurPDF : caches, base IndexedDB, service worker. */
+export async function effacerAncienLecteurPdf(): Promise<void> {
+  for (const nom of await caches.keys()) {
+    if (nom.startsWith(ANCIEN_LECTEURPDF.prefixeCache)) await caches.delete(nom);
+  }
+  if ("serviceWorker" in navigator) {
+    for (const r of await navigator.serviceWorker.getRegistrations()) {
+      if (new URL(r.scope).pathname === ANCIEN_LECTEURPDF.portee) await r.unregister();
+    }
+  }
+  if (await baseExiste(ANCIEN_LECTEURPDF.base)) {
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(ANCIEN_LECTEURPDF.base);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+      // Un onglet LecteurPDF encore ouvert bloque la suppression : elle se fera à sa fermeture.
+      req.onblocked = () => resolve();
+    });
+  }
+}

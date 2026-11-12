@@ -471,3 +471,17 @@ dialog input {
 .fleche-droite {
   right: 12px;
 }
+
+.detail-espace {
+  margin: 4px 0 12px;
+  padding-left: 20px;
+}
+
+.detail-espace li {
+  margin: 2px 0;
+}
+
+#espace-stockage .bouton {
+  width: 100%;
+  margin-top: 4px;
+}

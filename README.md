@@ -23,6 +23,8 @@ PWA de lecture de PDF pour Android (Chrome) : table des matières, signets perso
 
 - **Lecture en colonnes** pour les PDF en deux colonnes (livres de règles, articles) : détectée automatiquement à l'ouverture, une colonne occupe la largeur de l'écran ; ◂ ▸ ou balayage horizontal pour changer de colonne. Le bouton à deux colonnes de la barre active ou coupe le mode, et ce choix est retenu pour chaque document. Retour, signets et reprise de lecture retrouvent la bonne colonne.
 
+- Espace de stockage : l'écran d'accueil détaille l'espace par application. Le site `pierreproust.github.io` est partagé avec l'ancien LecteurPDF et VASLweb, et le total affiché par Chrome les inclut. Un bouton efface les données de l'ancien LecteurPDF.
+
 Non disponible en V1 : annotations, édition, formulaires, recherche plein texte. « Ouvrir avec » n'est pas possible : l'API File Handling n'existe pas sur Chrome Android ([étude](docs/etude.md)).
 
 ## Compatibilité

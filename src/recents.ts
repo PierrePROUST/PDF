@@ -1,4 +1,11 @@
-import { espaceUtilise, listerDocuments, supprimerDocument, type DocumentEnregistre } from "./stockage";
+import {
+  detailEspace,
+  effacerAncienLecteurPdf,
+  espaceUtilise,
+  listerDocuments,
+  supprimerDocument,
+  type DocumentEnregistre,
+} from "./stockage";
 import { formaterTaille } from "./ui";
 
 const ICONE_SUPPRIMER =
@@ -65,13 +72,62 @@ export class ListeRecents {
   private async afficherEspace(): Promise<void> {
     const e = await espaceUtilise().catch(() => null);
     if (!e) {
-      this.espace.textContent = "";
+      this.espace.replaceChildren();
       return;
     }
-    this.espace.textContent =
-      `Espace utilisé : ${formaterTaille(e.utilise)} sur ${formaterTaille(e.quota)} disponibles. ` +
+    const resume = document.createElement("p");
+    resume.textContent =
+      `Espace utilisé par tout le site pierreproust.github.io : ${formaterTaille(e.utilise)} ` +
+      `sur ${formaterTaille(e.quota)} disponibles. ` +
       (e.persistant
         ? "Stockage persistant : les documents ne seront pas effacés automatiquement."
         : "Stockage non persistant : le navigateur peut effacer les documents s'il manque de place.");
+    this.espace.replaceChildren(resume);
+
+    const detail = await detailEspace().catch((err) => {
+      console.warn("Détail de l'espace indisponible", err);
+      return null;
+    });
+    if (!detail) return;
+    const explication = document.createElement("p");
+    explication.textContent =
+      "Ce site est partagé avec vos autres applications (ancien LecteurPDF, VASLweb…). Détail :";
+    const liste = document.createElement("ul");
+    liste.className = "detail-espace";
+    let mesure = 0;
+    for (const l of detail.lignes) {
+      mesure += l.octets;
+      const li = document.createElement("li");
+      li.textContent = `${l.libelle} : ${formaterTaille(l.octets)}`;
+      liste.append(li);
+    }
+    const reste = document.createElement("li");
+    reste.textContent =
+      `Le reste (${formaterTaille(Math.max(0, e.utilise - mesure))}) : données d'autres applications ` +
+      "du site et réserve interne de Chrome, non détaillables ici. Après un effacement, Chrome peut " +
+      "mettre un moment à faire baisser le total : c'est normal.";
+    liste.append(reste);
+    this.espace.append(explication, liste);
+
+    if (detail.ancienLecteurPdf) {
+      const bouton = document.createElement("button");
+      bouton.type = "button";
+      bouton.className = "bouton";
+      bouton.textContent = "Effacer les données de l'ancien LecteurPDF";
+      bouton.addEventListener("click", async () => {
+        if (
+          !confirm(
+            "Effacer les données de l'ancienne application LecteurPDF (caches, documents, signets) ?\n" +
+              "PDF et VASLweb ne sont pas touchés.",
+          )
+        ) {
+          return;
+        }
+        bouton.disabled = true;
+        await effacerAncienLecteurPdf().catch((err) => console.error(err));
+        await this.afficherEspace();
+      });
+      this.espace.append(bouton);
+    }
   }
 }
