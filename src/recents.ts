@@ -1,5 +1,6 @@
 import {
   detailEspace,
+  effacerCopies,
   effacerAncienLecteurPdf,
   espaceUtilise,
   listerDocuments,
@@ -58,7 +59,7 @@ export class ListeRecents {
     supprimer.setAttribute("aria-label", `Supprimer « ${d.titre || d.nom} » de la liste`);
     supprimer.innerHTML = ICONE_SUPPRIMER;
     supprimer.addEventListener("click", async () => {
-      if (!confirm(`Supprimer « ${d.titre || d.nom} » de la liste ?\nLa copie du PDF et ses signets seront effacés de l'application.`)) {
+      if (!confirm(`Supprimer « ${d.titre || d.nom} » de la liste ?\nSes signets et sa position de lecture seront effacés de l'application ; le fichier PDF n'est pas touché.`)) {
         return;
       }
       await supprimerDocument(d.id);
@@ -80,8 +81,8 @@ export class ListeRecents {
       `Espace utilisé par tout le site pierreproust.github.io : ${formaterTaille(e.utilise)} ` +
       `sur ${formaterTaille(e.quota)} disponibles. ` +
       (e.persistant
-        ? "Stockage persistant : les documents ne seront pas effacés automatiquement."
-        : "Stockage non persistant : le navigateur peut effacer les documents s'il manque de place.");
+        ? "Stockage persistant : signets et positions ne seront pas effacés automatiquement."
+        : "Stockage non persistant : le navigateur peut effacer signets et positions s'il manque de place.");
     this.espace.replaceChildren(resume);
 
     const detail = await detailEspace().catch((err) => {
@@ -108,6 +109,28 @@ export class ListeRecents {
       "mettre un moment à faire baisser le total : c'est normal.";
     liste.append(reste);
     this.espace.append(explication, liste);
+
+    if (detail.copies) {
+      const bouton = document.createElement("button");
+      bouton.type = "button";
+      bouton.className = "bouton";
+      bouton.textContent = `Effacer les ${detail.copies} anciennes copies de PDF`;
+      bouton.addEventListener("click", async () => {
+        if (
+          !confirm(
+            "Effacer les copies de PDF que l'application gardait auparavant ?\n" +
+              "Vos fichiers d'origine, vos signets et vos positions de lecture ne sont pas touchés ; " +
+              "il faudra re-choisir le fichier pour rouvrir ces documents.",
+          )
+        ) {
+          return;
+        }
+        bouton.disabled = true;
+        await effacerCopies().catch((err) => console.error(err));
+        await this.afficherEspace();
+      });
+      this.espace.append(bouton);
+    }
 
     if (detail.ancienLecteurPdf) {
       const bouton = document.createElement("button");

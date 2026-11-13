@@ -2,7 +2,9 @@
  * Stockage local (IndexedDB) : tout reste sur le téléphone.
  *
  *   documents : un enregistrement par PDF connu (récents, dernière position lue)
- *   fichiers  : la copie du PDF (une PWA Android ne garde pas l'accès au fichier d'origine)
+ *   fichiers  : anciennes copies de PDF. Depuis le 13 novembre 2026 l'application n'en crée
+ *               plus (le fichier reste là où il est sur l'appareil) ; celles qui existent
+ *               servent encore à rouvrir depuis les récents, jusqu'à leur effacement.
  *   signets   : signets perso, indexés par document
  */
 import type { Emplacement } from "./emplacement";
@@ -90,12 +92,15 @@ export async function enregistrerDocument(doc: DocumentEnregistre): Promise<void
   await attendre((await magasin("documents", "readwrite")).put(doc));
 }
 
-/** Enregistre un document et sa copie dans une seule transaction. */
-export async function enregistrerDocumentEtFichier(doc: DocumentEnregistre, donnees: Blob): Promise<void> {
-  const tx = (await base()).transaction(["documents", "fichiers"], "readwrite");
-  tx.objectStore("documents").put(doc);
-  tx.objectStore("fichiers").put({ id: doc.id, donnees } satisfies FichierEnregistre);
-  await fin(tx);
+/** Anciennes copies de PDF encore gardées par l'application. */
+export async function tailleCopies(): Promise<{ nombre: number; octets: number }> {
+  const copies = await attendre((await magasin("fichiers")).getAll() as IDBRequest<FichierEnregistre[]>);
+  return { nombre: copies.length, octets: copies.reduce((t, c) => t + c.donnees.size, 0) };
+}
+
+/** Efface les anciennes copies de PDF (documents, signets et positions sont conservés). */
+export async function effacerCopies(): Promise<void> {
+  await attendre((await magasin("fichiers", "readwrite")).clear());
 }
 
 export async function majPosition(id: string, position: Emplacement): Promise<void> {
@@ -196,7 +201,7 @@ async function baseExiste(nom: string): Promise<boolean> {
 }
 
 /** Taille des caches par application, et des copies de PDF gardées par PDF. */
-export async function detailEspace(): Promise<{ lignes: LigneEspace[]; ancienLecteurPdf: boolean }> {
+export async function detailEspace(): Promise<{ lignes: LigneEspace[]; ancienLecteurPdf: boolean; copies: number }> {
   const groupes = new Map<string, number>();
   const ajouter = (libelle: string, octets: number) => groupes.set(libelle, (groupes.get(libelle) ?? 0) + octets);
   let ancienLecteurPdf = false;
@@ -209,10 +214,10 @@ export async function detailEspace(): Promise<{ lignes: LigneEspace[]; ancienLec
     } else if (nom.startsWith("vaslweb-")) ajouter("VASLweb / Vaslwebtest (caches)", taille);
     else ajouter("Autres caches du site", taille);
   }
-  const docs = await listerDocuments().catch(() => []);
-  ajouter("PDF : copies des documents", docs.reduce((t, d) => t + d.taille, 0));
+  const copies = await tailleCopies().catch(() => ({ nombre: 0, octets: 0 }));
+  if (copies.nombre) ajouter("PDF : anciennes copies de documents", copies.octets);
   if (await baseExiste(ANCIEN_LECTEURPDF.base)) ancienLecteurPdf = true;
-  return { lignes: [...groupes].map(([libelle, octets]) => ({ libelle, octets })), ancienLecteurPdf };
+  return { lignes: [...groupes].map(([libelle, octets]) => ({ libelle, octets })), ancienLecteurPdf, copies: copies.nombre };
 }
 
 /** Efface tout ce qui reste de l'ancien LecteurPDF : caches, base IndexedDB, service worker. */

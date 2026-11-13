@@ -115,7 +115,14 @@
       <main class="accueil-contenu">
         <label class="bouton bouton-principal" for="choix-fichier">Ouvrir un PDF</label>
         <input id="choix-fichier" type="file" accept="application/pdf,.pdf" hidden />
+        <label class="bouton" for="choix-dossier">Assembler un dossier de PDF</label>
+        <input id="choix-dossier" type="file" webkitdirectory multiple hidden />
+        <p id="etat-accueil" class="note" role="status" hidden></p>
         <h2>Documents récents</h2>
+        <p class="note">
+          L'application ne garde pas de copie des PDF : touchez un document pour re-choisir son fichier, vos signets et
+          votre position de lecture sont retrouvés.
+        </p>
         <ul id="liste-recents" class="liste"></ul>
         <p id="aucun-recent" class="vide">Aucun document pour l'instant.</p>
         <div id="espace-stockage" class="note"></div>
@@ -141,6 +148,9 @@
         <button id="btn-colonnes" class="icone" type="button" aria-label="Lecture en colonnes" aria-pressed="false" title="Lecture en colonnes">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h8v16H3zm2 2v12h4V6zm8-2h8v16h-8zm2 2v12h4V6z" /></svg>
         </button>
+        <button id="btn-extraire" class="icone" type="button" aria-label="Extraire des pages" title="Extraire des pages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm9.5 5.2-3-3 1.4-1.4 1.6 1.6 4.1-4.1 1.4 1.4z" /></svg>
+        </button>
         <button id="btn-signets" class="icone" type="button" aria-label="Signets" title="Signets">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" /></svg>
         </button>
@@ -153,6 +163,22 @@
       <button id="indicateur-page" class="indicateur" type="button" aria-label="Aller à la page">– / –</button>
       <button id="bandeau-retour" class="bandeau" type="button" hidden></button>
       <p id="message" class="message" role="status" hidden></p>
+    </section>
+
+    <!-- Extracteur de pages : vignettes à cocher -->
+    <section id="extracteur" class="ecran" hidden>
+      <header class="barre">
+        <button id="extraction-fermer" class="icone" type="button" aria-label="Annuler l'extraction" title="Annuler">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z" /></svg>
+        </button>
+        <h1 class="barre-titre">Extraire des pages</h1>
+      </header>
+      <div class="extraction-outils">
+        <button id="extraction-tout" class="bouton" type="button">Tout</button>
+        <button id="extraction-aucune" class="bouton" type="button">Aucune</button>
+        <button id="extraction-valider" class="bouton bouton-principal" type="button" disabled>Cochez des pages</button>
+      </div>
+      <div id="extraction-grille" class="extraction-grille"></div>
     </section>
 
     <!-- Panneau latéral : table des matières -->

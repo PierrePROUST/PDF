@@ -26,7 +26,14 @@ Fonctions secondaires (V1 minimale) :
 - Fonctionne **hors ligne** une fois installée.
 - Liste des documents récents et reprise à la dernière position lue.
 
-Hors périmètre V1 : annotations, édition, formulaires, recherche plein texte (V2 éventuelle).
+Hors périmètre V1 : annotations, édition du contenu, formulaires, recherche plein texte (V2 éventuelle).
+
+## Fabrication de PDF (ajoutée le 13 novembre 2026)
+
+- **Ne jamais modifier un PDF d'origine** : on produit toujours un nouveau fichier, enregistré dans Téléchargements (`<a download>`) puis ouvert dans le lecteur.
+- **Extraire des pages** : bouton de la barre du lecteur ; vignettes de toutes les pages avec case à cocher (dessin paresseux, mémoire libérée hors écran), nom du nouveau PDF demandé.
+- **Assembler un dossier** : bouton de l'accueil, `<input type="file" webkitdirectory>` — choix fait par l'utilisateur : dossier seul. Le choix d'un dossier n'existe sur Chrome Android qu'à partir de la **version 132** (données MDN) : en dessous, un avertissement s'affiche et le sélecteur ne propose que des fichiers. Ordre : noms de fichiers, tri « naturel ».
+- Écriture des PDF : **`@cantoo/pdf-lib`** (reprise maintenue de pdf-lib, licence MIT), version exacte dans `package.json`, chargée par import dynamique. PDF.js reste le seul moteur de lecture et d'affichage.
 
 ## Définition précise de « l'emplacement »
 
@@ -46,7 +53,7 @@ Identifiant du document = empreinte du contenu (hash SHA-256 via `crypto.subtle`
   - Décider avec moi : utiliser les composants de visionneuse fournis par `pdfjs-dist` (`PDFViewer`, `PDFLinkService`…) **ou** un rendu maison canvas page par page. Présenter les deux options avec leurs limites avant de coder.
 - Le worker PDF.js doit être servi localement (pas de CDN), pour le hors-ligne.
 - Outillage proposé : **Vite + TypeScript**, sans framework d'interface sauf justification. Plugin PWA seulement s'il est vérifié et maintenu ; sinon `manifest.webmanifest` + service worker écrits à la main.
-- Stockage local : **IndexedDB** (signets perso, dernière position, liste des récents, **copie du PDF** pour pouvoir le rouvrir depuis les récents — sur Android une PWA ne peut pas garder d'accès permanent au fichier d'origine). Demander `navigator.storage.persist()` et afficher l'espace utilisé. Permettre de supprimer un document de la liste (et sa copie).
+- Stockage local : **IndexedDB** (signets perso, dernière position, liste des récents). **Aucune copie du PDF n'est gardée** (décision du 13 novembre 2026) : toucher un récent fait re-choisir le fichier, retrouvé par son empreinte. Les anciennes copies (magasin `fichiers`) restent lisibles jusqu'à ce que l'utilisateur les efface ; ne plus en créer. Garder un accès au fichier d'origine (`showOpenFilePicker`) n'existe sur Chrome Android qu'à partir de la version 132 : ne pas l'utiliser tant que le minimum est 125. Demander `navigator.storage.persist()` et afficher l'espace utilisé. Permettre de supprimer un document de la liste.
 - Pas de serveur, pas d'envoi de données : tout reste sur le téléphone.
 
 ## Compatibilité
