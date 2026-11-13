@@ -1,5 +1,6 @@
 import "./style.css";
 import type { Emplacement } from "./emplacement";
+import { Extracteur } from "./extracteur";
 import { empreinteSha256 } from "./hachage";
 import { Historique } from "./historique";
 import { ModeColonnes } from "./modecolonnes";
@@ -8,7 +9,6 @@ import { PanneauSignets } from "./signets";
 import {
   demanderPersistance,
   enregistrerDocument,
-  enregistrerDocumentEtFichier,
   lireDocument,
   lireFichier,
   majModeColonnes,
@@ -182,6 +182,8 @@ bandeau.addEventListener("click", () => {
 
 window.addEventListener("popstate", (ev) => {
   const e = ev.state as EtatHistorique | null;
+  // L'extracteur de pages occupe une entrée d'historique : tout retour le referme.
+  extracteur.fermer();
   if (!e || e.lp !== "lecteur") {
     // Retour à la liste des documents.
     if (visionneuse.document) void fermerDocument();
@@ -226,12 +228,18 @@ const recents = new ListeRecents(el<HTMLUListElement>("liste-recents"), el("aucu
 });
 
 let ouvertureEnCours = false;
+/** Nom de fichier du document ouvert (pour nommer un extrait). */
+let nomDocument = "";
+/** Document récent dont on a demandé de re-choisir le fichier. */
+let recentAttendu: { id: string; nom: string } | null = null;
 
 /**
- * Ouvre un PDF (fichier choisi, partagé ou récent). Le document et une copie du PDF
- * sont enregistrés dans IndexedDB ; s'il est déjà connu, on reprend à la dernière position.
+ * Ouvre un PDF (fichier choisi, partagé, récent ou fabriqué par l'application). Seuls le nom,
+ * la position de lecture et les signets sont enregistrés dans IndexedDB, sous l'empreinte du
+ * contenu : aucune copie du PDF n'est gardée, le fichier reste où il est sur l'appareil.
+ * S'il est déjà connu, on reprend à la dernière position.
  */
-async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
+async function ouvrirFichier(fichier: Blob, nom: string, attendu: { id: string; nom: string } | null = null): Promise<void> {
   if (ouvertureEnCours) return;
   ouvertureEnCours = true;
   let entreeAjoutee = false;
@@ -240,12 +248,9 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
     const docId = await empreinteSha256(octets);
     const connu = await lireDocument(docId).catch(() => undefined);
     const enregistrement: DocumentEnregistre = { ...(connu ?? { id: docId, nom, taille: fichier.size }), ouvertLe: Date.now() };
-    if (connu) {
-      await enregistrerDocument(enregistrement);
-    } else {
-      await enregistrerDocumentEtFichier(enregistrement, fichier);
-      void demanderPersistance();
-    }
+    await enregistrerDocument(enregistrement);
+    if (!connu) void demanderPersistance();
+    nomDocument = enregistrement.nom;
 
     historique.vider();
     majBoutonsHistorique();
@@ -262,7 +267,9 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
     if (titre) el("titre-document").textContent = titre;
     await enregistrerDocument({ ...enregistrement, titre, nbPages: doc.numPages });
     majIndicateur();
-    if (connu?.position && connu.position.page > 0) {
+    if (attendu && attendu.id !== docId) {
+      afficherMessage(`Ce fichier n'est pas « ${attendu.nom} » : il est ouvert comme un autre document`, 6000);
+    } else if (connu?.position && connu.position.page > 0) {
       afficherMessage(`Reprise à la page ${connu.position.page + 1}`);
     }
     void tdm.charger(doc).then(() => tdm.majCourante(visionneuse.emplacement()));
@@ -277,12 +284,128 @@ async function ouvrirFichier(fichier: Blob, nom: string): Promise<void> {
 }
 
 async function ouvrirRecent(id: string, nom: string): Promise<void> {
+  // Ancienne copie encore gardée par l'application : ouverture directe.
   const fichier = await lireFichier(id).catch(() => undefined);
-  if (!fichier) {
-    alert(`La copie de « ${nom} » est introuvable. Rouvrez le fichier avec « Ouvrir un PDF ».`);
+  if (fichier) {
+    await ouvrirFichier(fichier, nom);
     return;
   }
-  await ouvrirFichier(fichier, nom);
+  // Sinon on fait re-choisir le fichier : signets et position sont retrouvés par l'empreinte du contenu.
+  recentAttendu = { id, nom };
+  choixFichier.click();
+}
+
+// ---------- Fabrication de PDF : extraction de pages, assemblage d'un dossier ----------
+
+/** Enregistre un PDF fabriqué dans les téléchargements de l'appareil. */
+function telecharger(fichier: Blob, nom: string): void {
+  const url = URL.createObjectURL(fichier);
+  const lien = document.createElement("a");
+  lien.href = url;
+  lien.download = nom;
+  document.body.append(lien);
+  lien.click();
+  lien.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Revient à la liste des documents (ferme le document ouvert) et attend que ce soit fait. */
+async function revenirAccueil(): Promise<void> {
+  if (!visionneuse.document) return;
+  const fait = new Promise<void>((resolve) => window.addEventListener("popstate", () => resolve(), { once: true }));
+  history.go(-(historique.profondeur + 1 + (extracteur.ouvert ? 1 : 0)));
+  await fait;
+}
+
+const extracteur = new Extracteur({
+  // Le retour dans l'historique referme l'extracteur (voir popstate).
+  fermer: () => history.back(),
+  extraire: (indices) => void extrairePagesChoisies(indices),
+});
+
+el("btn-extraire").addEventListener("click", () => {
+  const doc = visionneuse.document;
+  if (!doc || extracteur.ouvert) return;
+  fermerPanneaux();
+  // Entrée d'historique propre à l'extracteur : le retour d'Android le referme sans défaire un saut.
+  history.pushState(etat({ lp: "lecteur", n: historique.profondeur }), "");
+  void extracteur.ouvrir(doc).catch((e) => afficherErreur("Affichage des vignettes impossible", e));
+});
+
+async function extrairePagesChoisies(indices: number[]): Promise<void> {
+  const doc = visionneuse.document;
+  if (!doc) return;
+  const saisie = await demander("Nom du nouveau PDF", `${nomDocument.replace(/\.pdf$/i, "")} - extrait`);
+  if (saisie === null) return;
+  extracteur.occupe(true);
+  try {
+    const { extrairePages, nomFichierPdf } = await import("./assemblage");
+    const nom = nomFichierPdf(saisie, "extrait");
+    const octets = await extrairePages(await doc.getData(), indices);
+    const fichier = new Blob([octets as Uint8Array<ArrayBuffer>], { type: "application/pdf" });
+    telecharger(fichier, nom);
+    await revenirAccueil();
+    await ouvrirFichier(fichier, nom);
+    afficherMessage(`${indices.length} page${indices.length > 1 ? "s" : ""} : « ${nom} » enregistré dans Téléchargements`, 6000);
+  } catch (e) {
+    extracteur.occupe(false);
+    afficherErreur("Extraction des pages impossible", e);
+  }
+}
+
+const etatAccueil = el("etat-accueil");
+function direAccueil(texte: string): void {
+  etatAccueil.textContent = texte;
+  etatAccueil.hidden = !texte;
+}
+
+// Choisir un dossier : Chrome pour Android 132 ou plus (avant, le sélecteur ne propose que des fichiers).
+const versionChrome = Number(/Chrome\/(\d+)/.exec(navigator.userAgent)?.[1] ?? NaN);
+if (versionChrome < 132) {
+  direAccueil(
+    `Le choix d'un dossier demande Chrome 132 ou plus (ici : Chrome ${versionChrome}). ` +
+      "Le sélecteur risque de ne proposer que des fichiers : sélectionnez alors les PDF à assembler.",
+  );
+}
+
+el<HTMLInputElement>("choix-dossier").addEventListener("change", (ev) => {
+  const input = ev.target as HTMLInputElement;
+  const fichiers = [...(input.files ?? [])];
+  input.value = "";
+  if (fichiers.length) void assemblerDossier(fichiers);
+});
+
+async function assemblerDossier(fichiers: File[]): Promise<void> {
+  try {
+    const { assemblerPdf, nomFichierPdf, trierParChemin } = await import("./assemblage");
+    const pdf = trierParChemin(
+      fichiers
+        .filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name))
+        .map((f) => ({ chemin: f.webkitRelativePath || f.name, fichier: f })),
+    );
+    if (!pdf.length) {
+      direAccueil("Aucun PDF dans ce dossier.");
+      return;
+    }
+    const dossier = pdf[0].chemin.includes("/") ? pdf[0].chemin.split("/")[0] : "assemblage";
+    const saisie = await demander(`${pdf.length} PDF trouvés, assemblés dans l'ordre des noms. Nom du nouveau PDF :`, dossier);
+    if (saisie === null) return;
+    const nom = nomFichierPdf(saisie, "assemblage");
+    const resultat = await assemblerPdf(
+      pdf.map((p) => ({ nom: p.chemin, lire: () => p.fichier.arrayBuffer() })),
+      (fait, total) => direAccueil(`Assemblage : ${fait} / ${total} PDF…`),
+    );
+    const fichier = new Blob([resultat.octets as Uint8Array<ArrayBuffer>], { type: "application/pdf" });
+    telecharger(fichier, nom);
+    direAccueil(
+      `« ${nom} » (${resultat.nbPages} pages, ${pdf.length - resultat.ignores.length} PDF) enregistré dans Téléchargements.` +
+        (resultat.ignores.length ? ` Non assemblés : ${resultat.ignores.map((i) => i.nom).join(", ")}.` : ""),
+    );
+    await ouvrirFichier(fichier, nom);
+  } catch (e) {
+    direAccueil("");
+    afficherErreur("Assemblage du dossier impossible", e);
+  }
 }
 
 // Sauvegarde de la dernière position lue (pour la reprise de lecture).
@@ -324,11 +447,18 @@ async function recupererPartage(): Promise<void> {
   await ouvrirFichier(await reponse.blob(), nom);
 }
 
-el<HTMLInputElement>("choix-fichier").addEventListener("change", (ev) => {
+const choixFichier = el<HTMLInputElement>("choix-fichier");
+// « Ouvrir un PDF » : aucun document récent particulier n'est attendu.
+document.querySelector('label[for="choix-fichier"]')?.addEventListener("click", () => {
+  recentAttendu = null;
+});
+choixFichier.addEventListener("change", (ev) => {
   const input = ev.target as HTMLInputElement;
   const fichier = input.files?.[0];
   input.value = "";
-  if (fichier) void ouvrirFichier(fichier, fichier.name);
+  const attendu = recentAttendu;
+  recentAttendu = null;
+  if (fichier) void ouvrirFichier(fichier, fichier.name, attendu);
 });
 
 indicateur.addEventListener("click", async () => {

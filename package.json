@@ -11,6 +11,7 @@
     "pdf-test": "node outils/generer-pdf-test.mjs"
   },
   "dependencies": {
+    "@cantoo/pdf-lib": "2.11.1",
     "pdfjs-dist": "6.5.438"
   },
   "devDependencies": {
