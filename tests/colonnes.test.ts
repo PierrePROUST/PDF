@@ -89,23 +89,25 @@ describe("sortieDeColonne", () => {
     expect(sortieDeColonne(col, 1000, 2000, 1500, 800, -1)).toBe(false);
   });
 
-  it("vers le bas : enchaîne quand la fin de la colonne atteint le tiers supérieur de l'écran", () => {
-    // Fin de colonne à 2200 px ; marge fictive 2/3 × 800 ≈ 533 px ; seuil : haut de l'écran ≈ 1933 px.
-    expect(sortieDeColonne(col, 1000, 2000, 1920, 800, 1)).toBe(false);
-    expect(sortieDeColonne(col, 1000, 2000, 1935, 800, 1)).toBe(true);
+  it("vers le bas : enchaîne quand la fin de la colonne atteint les 4/5 de l'écran", () => {
+    // Fin de colonne à 2200 px ; marge fictive 1/5 × 800 = 160 px ; seuil : haut de l'écran à 1560 px.
+    expect(sortieDeColonne(col, 1000, 2000, 1550, 800, 1)).toBe(false);
+    expect(sortieDeColonne(col, 1000, 2000, 1560, 800, 1)).toBe(true);
   });
 
   it("vers le bas : la marge peut déborder sous le bas de la page", () => {
-    // Fin de colonne à 2960 px, bas de la page à 3000 px : seuil ≈ 2693 px, au-delà de la page.
+    // Fin de colonne à 2960 px, bas de la page à 3000 px : seuil 3120 px, au-delà de la page.
     expect(sortieDeColonne(pleine, 1000, 2000, 2200, 800, 1)).toBe(false);
-    expect(sortieDeColonne(pleine, 1000, 2000, 2680, 800, 1)).toBe(false);
-    expect(sortieDeColonne(pleine, 1000, 2000, 2695, 800, 1)).toBe(true);
+    expect(sortieDeColonne(pleine, 1000, 2000, 2310, 800, 1)).toBe(false);
+    expect(sortieDeColonne(pleine, 1000, 2000, 2320, 800, 1)).toBe(true);
   });
 
-  it("vers le haut : enchaîne quand le début de la colonne atteint le tiers inférieur de l'écran", () => {
-    // Début de colonne à 1200 px ; seuil ≈ 667 px, au-dessus du haut de la page.
-    expect(sortieDeColonne(col, 1000, 2000, 1000, 800, -1)).toBe(false);
-    expect(sortieDeColonne(col, 1000, 2000, 680, 800, -1)).toBe(false);
-    expect(sortieDeColonne(col, 1000, 2000, 665, 800, -1)).toBe(true);
+  it("vers le haut : enchaîne quand le début de la colonne atteint le 1/5 de l'écran", () => {
+    // Début de colonne à 1200 px ; seuil 1040 px.
+    expect(sortieDeColonne(col, 1000, 2000, 1050, 800, -1)).toBe(false);
+    expect(sortieDeColonne(col, 1000, 2000, 1040, 800, -1)).toBe(true);
+    // Début de colonne à 1040 px : seuil 880 px, au-dessus du haut de la page.
+    expect(sortieDeColonne(pleine, 1000, 2000, 890, 800, -1)).toBe(false);
+    expect(sortieDeColonne(pleine, 1000, 2000, 880, 800, -1)).toBe(true);
   });
 });

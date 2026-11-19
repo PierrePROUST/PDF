@@ -97,11 +97,12 @@ export function indexColonne(colonnes: [Colonne, Colonne], x: number): 0 | 1 {
 
 /**
  * Marge fictive au bout d'une colonne, en fraction de la hauteur de l'écran : en descendant,
- * la fin de la colonne peut remonter jusqu'au tiers supérieur de l'écran avant l'enchaînement
- * (et, en remontant, son début descendre jusqu'au tiers inférieur), pour avoir le temps de lire
- * les dernières lignes. Cette marge peut déborder sur la page voisine.
+ * la fin de la colonne remonte jusqu'aux 4/5 de la hauteur de l'écran avant l'enchaînement
+ * (et, en remontant, son début descend jusqu'au 1/5), pour avoir le temps de lire les dernières
+ * lignes. Valeur choisie le 19 novembre 2026 d'après une capture d'écran de l'utilisateur.
+ * Cette marge peut déborder sur la page voisine.
  */
-export const MARGE_FICTIVE = 2 / 3;
+export const MARGE_FICTIVE = 1 / 5;
 
 /**
  * Défilement vertical en lecture en colonnes : vrai si l'écran a dépassé la fin de la colonne
