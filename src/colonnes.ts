@@ -96,12 +96,17 @@ export function indexColonne(colonnes: [Colonne, Colonne], x: number): 0 | 1 {
 }
 
 /**
+ * Marge fictive au bout d'une colonne, en fraction de la hauteur de l'écran : en descendant,
+ * la fin de la colonne peut remonter jusqu'au tiers supérieur de l'écran avant l'enchaînement
+ * (et, en remontant, son début descendre jusqu'au tiers inférieur), pour avoir le temps de lire
+ * les dernières lignes. Cette marge peut déborder sur la page voisine.
+ */
+export const MARGE_FICTIVE = 2 / 3;
+
+/**
  * Défilement vertical en lecture en colonnes : vrai si l'écran a dépassé la fin de la colonne
- * (sens 1, vers le bas) ou son début (sens -1, vers le haut), et qu'il faut donc enchaîner sur
- * la colonne suivante ou précédente.
- *
- * On laisse le bout de la colonne remonter jusqu'au milieu de l'écran (pour finir de lire, et
- * voir un titre ou une note pleine largeur), sans jamais dépasser le bord de la page.
+ * (sens 1, vers le bas) ou son début (sens -1, vers le haut) d'au moins la marge fictive, et
+ * qu'il faut donc enchaîner sur la colonne suivante ou précédente.
  * Positions en pixels dans le contenu défilant.
  */
 export function sortieDeColonne(
@@ -112,10 +117,11 @@ export function sortieDeColonne(
   hauteurEcran: number,
   sens: 1 | -1,
 ): boolean {
+  const marge = MARGE_FICTIVE * hauteurEcran;
   if (sens === 1) {
-    const seuil = Math.min(hautPage + hauteurPage, hautPage + colonne.y1 * hauteurPage + hauteurEcran / 2);
+    const seuil = hautPage + colonne.y1 * hauteurPage + marge;
     return hautEcran + hauteurEcran >= seuil - 1;
   }
-  const seuil = Math.max(hautPage, hautPage + colonne.y0 * hauteurPage - hauteurEcran / 2);
+  const seuil = hautPage + colonne.y0 * hauteurPage - marge;
   return hautEcran <= seuil + 1;
 }
