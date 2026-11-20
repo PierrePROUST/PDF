@@ -16,8 +16,9 @@
   --cible: 48px;
 }
 
+/* Thème sombre : réglage du téléphone (thème « automatique »)… */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="clair"]) {
     --fond: #12171c;
     --fond-lecture: #0b0f13;
     --surface: #1c232a;
@@ -30,7 +31,36 @@
     --separateur: #313b45;
     --actif: #213246;
     --danger: #ef7070;
+    /* Pages PDF assombries : inversion des couleurs adoucie (blanc → gris très foncé,
+       noir → gris clair), puis rotation de teinte pour garder les couleurs reconnaissables. */
+    --filtre-page: invert(0.88) hue-rotate(180deg);
+    --fond-page: #1e1e1e;
   }
+}
+
+/* … ou choix explicite (bouton de thème, src/theme.ts). */
+:root[data-theme="sombre"] {
+  color-scheme: dark;
+  --fond: #12171c;
+  --fond-lecture: #0b0f13;
+  --surface: #1c232a;
+  --texte: #e4e7eb;
+  --texte-doux: #9aa5b1;
+  --barre: #0f1419;
+  --barre-texte: #e4e7eb;
+  --accent: #5aa9f5;
+  --accent-texte: #0b1520;
+  --separateur: #313b45;
+  --actif: #213246;
+  --danger: #ef7070;
+  /* Pages PDF assombries : inversion des couleurs adoucie (blanc → gris très foncé,
+     noir → gris clair), puis rotation de teinte pour garder les couleurs reconnaissables. */
+  --filtre-page: invert(0.88) hue-rotate(180deg);
+  --fond-page: #1e1e1e;
+}
+
+:root[data-theme="clair"] {
+  color-scheme: light;
 }
 
 * {
@@ -539,4 +569,34 @@ dialog input {
   width: 24px;
   height: 24px;
   accent-color: var(--accent);
+}
+
+/* Thème : icône selon le choix (automatique, clair, sombre). */
+.bouton-theme path {
+  display: none;
+}
+
+.bouton-theme[data-theme="auto"] .theme-auto,
+.bouton-theme[data-theme="clair"] .theme-clair,
+.bouton-theme[data-theme="sombre"] .theme-sombre {
+  display: inline;
+}
+
+.bouton-flottant {
+  position: absolute;
+  right: 12px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  background: rgb(31 41 51 / 0.85);
+  color: #fff;
+}
+
+/* Pages PDF en thème sombre (aucun effet en thème clair : variables non définies). */
+#visionneuse {
+  --page-bg-color: var(--fond-page, rgb(255 255 255));
+}
+
+/* Le filtre s'applique aussi au fond blanc des vignettes, assombri de la même façon. */
+#visionneuse .canvasWrapper,
+.vignette canvas {
+  filter: var(--filtre-page, none);
 }

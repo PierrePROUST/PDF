@@ -26,6 +26,8 @@ PWA de lecture de PDF pour Android (Chrome) : table des matières, signets perso
 
 - **Lecture en colonnes** pour les PDF en deux colonnes (livres de règles, articles) : détectée automatiquement à l'ouverture, une colonne occupe la largeur de l'écran. En défilant, arriver en bas d'une colonne amène en haut de la suivante — avec une marge : la fin de la colonne remonte d'abord jusqu'aux 4/5 de la hauteur de l'écran pour laisser lire les dernières lignes — (colonne gauche → colonne droite → page suivante), et inversement en remontant ; un balayage horizontal change aussi de colonne. Le pincement zoome à l'intérieur de la colonne en cours (quand elle dépasse la largeur de l'écran, le doigt sert à s'y déplacer et le balayage est coupé). Le bouton à deux colonnes de la barre active ou coupe le mode, et ce choix est retenu pour chaque document. Retour, signets et reprise de lecture retrouvent la bonne colonne.
 
+- **Mode sombre** de l'application **et des pages PDF** : bouton de thème (en haut de l'accueil, et rond en bas à droite pendant la lecture). Chaque toucher passe de **automatique** (suit le réglage du téléphone, icône ◐) à **clair** (soleil) puis **sombre** (lune) ; le choix est retenu. En thème sombre, les pages PDF (et les vignettes d'extraction) sont affichées en couleurs inversées et adoucies : fond gris très foncé, texte gris clair, teintes conservées. Limite : les photos apparaissent elles aussi inversées (en négatif) ; repasser en thème clair pour les voir normalement. Les PDF fabriqués (extraction, assemblage) ne sont pas modifiés.
+
 - Espace de stockage : l'écran d'accueil détaille l'espace par application. Le site `pierreproust.github.io` est partagé avec l'ancien LecteurPDF et VASLweb, et le total affiché par Chrome les inclut. Un bouton efface les données de l'ancien LecteurPDF.
 
 Non disponible en V1 : annotations, édition, formulaires, recherche plein texte. « Ouvrir avec » n'est pas possible : l'API File Handling n'existe pas sur Chrome Android ([étude](docs/etude.md)).
@@ -53,6 +55,7 @@ Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l
 | 4 | Suite de sauts (table des matières, numéro de page, lien interne du PDF) puis retours par `history.back()` (équivalent du geste retour) : retour au pixel près, Avancer, branche effacée après un nouveau saut, retour à la liste quand la pile est vide |
 | 5 | Signet (titre proposé = section courante), saut avec restauration du zoom (à 1–2 px près, arrondi d'échelle), retour, renommage, suppression, conservation après rechargement |
 | 6 | Reprise de lecture après fermeture de l'onglet, liste des récents, suppression, partage simulé (formulaire `POST multipart/form-data` vers `./partage`, intercepté par le service worker), ouverture hors ligne, thème sombre |
+| Mode sombre | Chromium 157 (Playwright, fenêtre 400 × 760) : cycle automatique → clair → sombre, pages PDF assombries, choix retenu après rechargement, thème automatique avec téléphone réglé en sombre, couleur de la barre système (`theme-color`) |
 
 ### À vérifier sur le téléphone (Chrome Android)
 
@@ -61,6 +64,7 @@ Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l
 3. Le **geste retour** d'Android dépile les sauts, puis revient à la liste, puis quitte l'application. Chrome peut ignorer, au retour, les entrées d'historique ajoutées sans action de l'utilisateur : ce cas peut se produire pour un document reçu par partage.
 4. Le zoom par pincement est fluide sur un gros PDF.
 5. Le stockage persistant est accordé (message sous la liste des récents).
+6. Le mode sombre : lisibilité des pages assombries, couleur de la barre d'état, fluidité du défilement avec le filtre d'inversion.
 
 ## Historique
 
