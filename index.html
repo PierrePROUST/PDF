@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#1f2933" />
     <meta name="description" content="Lecteur PDF avec table des matières, signets et retour arrière." />
     <title>PDF</title>
+    <script>
+      // Thème choisi (src/theme.ts) appliqué avant l'affichage, pour éviter un flash clair.
+      try {
+        var themeChoisi = localStorage.getItem("pdfapp-theme");
+        if (themeChoisi === "clair" || themeChoisi === "sombre") document.documentElement.setAttribute("data-theme", themeChoisi);
+      } catch (ignore) {}
+    </script>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icones/icone-192.png" />
     <link rel="apple-touch-icon" href="./icones/apple-touch-icon.png" />
@@ -111,6 +118,13 @@
     <section id="accueil" class="ecran">
       <header class="barre">
         <h1 class="barre-titre">PDF</h1>
+        <button id="btn-theme-accueil" class="icone bouton-theme" type="button" aria-label="Thème" title="Thème">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path class="theme-auto" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2v16a8 8 0 0 1 0-16z" />
+            <path class="theme-clair" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 2.8l2.1 2.1-1.4 1.4-2.1-2.1zm14.9 14.9 2.1 2.1-1.4 1.4-2.1-2.1zM2.8 19.8l2.1-2.1 1.4 1.4-2.1 2.1zM17.7 4.9l2.1-2.1 1.4 1.4-2.1 2.1z" />
+            <path class="theme-sombre" d="M12.3 2a8 8 0 1 0 9.7 9.7A10 10 0 1 1 12.3 2z" />
+          </svg>
+        </button>
       </header>
       <main class="accueil-contenu">
         <label class="bouton bouton-principal" for="choix-fichier">Ouvrir un PDF</label>
@@ -160,6 +174,13 @@
           <div id="visionneuse" class="pdfViewer"></div>
         </div>
       </div>
+      <button id="btn-theme-lecteur" class="icone bouton-theme bouton-flottant" type="button" aria-label="Thème" title="Thème">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="theme-auto" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2v16a8 8 0 0 1 0-16z" />
+          <path class="theme-clair" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 2.8l2.1 2.1-1.4 1.4-2.1-2.1zm14.9 14.9 2.1 2.1-1.4 1.4-2.1-2.1zM2.8 19.8l2.1-2.1 1.4 1.4-2.1 2.1zM17.7 4.9l2.1-2.1 1.4 1.4-2.1 2.1z" />
+          <path class="theme-sombre" d="M12.3 2a8 8 0 1 0 9.7 9.7A10 10 0 1 1 12.3 2z" />
+        </svg>
+      </button>
       <button id="indicateur-page" class="indicateur" type="button" aria-label="Aller à la page">– / –</button>
       <button id="bandeau-retour" class="bandeau" type="button" hidden></button>
       <p id="message" class="message" role="status" hidden></p>

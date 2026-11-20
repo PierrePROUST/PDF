@@ -17,6 +17,7 @@ import {
 } from "./stockage";
 import { afficherErreur, afficherMessage, demander, el } from "./ui";
 import { TableDesMatieres } from "./tdm";
+import { installerTheme } from "./theme";
 import { Visionneuse } from "./visionneuse";
 
 const ecranAccueil = el("accueil");
@@ -492,6 +493,11 @@ async function fermerDocument(): Promise<void> {
 // « Documents » : revient à l'entrée « accueil » de l'historique (le popstate ferme le document).
 el("btn-fermer").addEventListener("click", () => {
   history.go(-(historique.profondeur + 1));
+});
+
+// Thème : automatique → clair → sombre (pages PDF assombries en thème sombre).
+installerTheme([el<HTMLButtonElement>("btn-theme-accueil"), el<HTMLButtonElement>("btn-theme-lecteur")], (libelle) => {
+  if (!ecranLecteur.hidden) afficherMessage(libelle, 2000);
 });
 
 void recents.afficher();
