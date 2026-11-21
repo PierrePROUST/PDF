@@ -304,8 +304,28 @@ async function ouvrirRecent(id: string, nom: string): Promise<void> {
 
 // ---------- Fabrication de PDF : extraction de pages, assemblage d'un dossier ----------
 
-/** Enregistre un PDF fabriqué dans les téléchargements de l'appareil. */
-function telecharger(fichier: Blob, nom: string): void {
+/**
+ * Propose d'enregistrer un PDF dans Téléchargements ou de le partager.
+ * Le téléchargement est lancé par un toucher direct sur le bouton : lancé automatiquement
+ * après la fabrication (plusieurs secondes après le dernier toucher), Chrome pour Android
+ * peut l'ignorer sans rien dire.
+ */
+const dialogueEnregistrer = el<HTMLDialogElement>("dialogue-enregistrer");
+let aEnregistrer: { fichier: Blob; nom: string } | null = null;
+
+function proposerEnregistrement(fichier: Blob, nom: string, texte: string): void {
+  aEnregistrer = { fichier, nom };
+  el("enregistrer-texte").textContent = texte;
+  const partage = el<HTMLButtonElement>("enregistrer-partager");
+  partage.hidden = !navigator.canShare?.({ files: [new File([fichier], nom, { type: "application/pdf" })] });
+  if (!dialogueEnregistrer.open) dialogueEnregistrer.showModal();
+}
+
+dialogueEnregistrer.addEventListener("close", () => (aEnregistrer = null));
+
+el("enregistrer-telecharger").addEventListener("click", () => {
+  if (!aEnregistrer) return;
+  const { fichier, nom } = aEnregistrer;
   const url = URL.createObjectURL(fichier);
   const lien = document.createElement("a");
   lien.href = url;
@@ -314,7 +334,34 @@ function telecharger(fichier: Blob, nom: string): void {
   lien.click();
   lien.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
+  dialogueEnregistrer.close();
+  afficherMessage(`Téléchargement de « ${nom} » lancé : voir la notification de Chrome, ou ⋮ → Téléchargements`, 8000);
+});
+
+el("enregistrer-partager").addEventListener("click", async () => {
+  if (!aEnregistrer) return;
+  const { fichier, nom } = aEnregistrer;
+  try {
+    await navigator.share({ files: [new File([fichier], nom, { type: "application/pdf" })], title: nom });
+    dialogueEnregistrer.close();
+  } catch (e) {
+    // Partage annulé par l'utilisateur : on laisse la boîte ouverte.
+    if ((e as DOMException).name !== "AbortError") afficherErreur("Partage du PDF impossible", e);
+  }
+});
+
+el("btn-enregistrer").addEventListener("click", async () => {
+  const doc = visionneuse.document;
+  if (!doc) return;
+  fermerPanneaux();
+  try {
+    const octets = await doc.getData();
+    const nom = /\.pdf$/i.test(nomDocument) ? nomDocument : `${nomDocument || "document"}.pdf`;
+    proposerEnregistrement(new Blob([octets as Uint8Array<ArrayBuffer>], { type: "application/pdf" }), nom, `« ${nom} »`);
+  } catch (e) {
+    afficherErreur("Lecture du PDF impossible", e);
+  }
+});
 
 /** Revient à la liste des documents (ferme le document ouvert) et attend que ce soit fait. */
 async function revenirAccueil(): Promise<void> {
@@ -350,10 +397,14 @@ async function extrairePagesChoisies(indices: number[]): Promise<void> {
     const nom = nomFichierPdf(saisie, "extrait");
     const octets = await extrairePages(await doc.getData(), indices);
     const fichier = new Blob([octets as Uint8Array<ArrayBuffer>], { type: "application/pdf" });
-    telecharger(fichier, nom);
     await revenirAccueil();
     await ouvrirFichier(fichier, nom);
-    afficherMessage(`${indices.length} page${indices.length > 1 ? "s" : ""} : « ${nom} » enregistré dans Téléchargements`, 6000);
+    proposerEnregistrement(
+      fichier,
+      nom,
+      `« ${nom} » est prêt (${indices.length} page${indices.length > 1 ? "s" : ""}) et ouvert dans le lecteur. ` +
+        "Il est gardé dans les documents récents de l'application.",
+    );
   } catch (e) {
     extracteur.occupe(false);
     afficherErreur("Extraction des pages impossible", e);
@@ -403,12 +454,13 @@ async function assemblerDossier(fichiers: File[]): Promise<void> {
       (fait, total) => direAccueil(`Assemblage : ${fait} / ${total} PDF…`),
     );
     const fichier = new Blob([resultat.octets as Uint8Array<ArrayBuffer>], { type: "application/pdf" });
-    telecharger(fichier, nom);
-    direAccueil(
-      `« ${nom} » (${resultat.nbPages} pages, ${pdf.length - resultat.ignores.length} PDF) enregistré dans Téléchargements.` +
-        (resultat.ignores.length ? ` Non assemblés : ${resultat.ignores.map((i) => i.nom).join(", ")}.` : ""),
-    );
+    const texte =
+      `« ${nom} » est prêt (${resultat.nbPages} pages, ${pdf.length - resultat.ignores.length} PDF) et ouvert dans le lecteur. ` +
+      "Il est gardé dans les documents récents de l'application." +
+      (resultat.ignores.length ? ` Non assemblés : ${resultat.ignores.map((i) => i.nom).join(", ")}.` : "");
+    direAccueil("");
     await ouvrirFichier(fichier, nom);
+    proposerEnregistrement(fichier, nom, texte);
   } catch (e) {
     direAccueil("");
     afficherErreur("Assemblage du dossier impossible", e);

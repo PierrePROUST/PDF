@@ -165,6 +165,9 @@
         <button id="btn-extraire" class="icone" type="button" aria-label="Extraire des pages" title="Extraire des pages">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm9.5 5.2-3-3 1.4-1.4 1.6 1.6 4.1-4.1 1.4 1.4z" /></svg>
         </button>
+        <button id="btn-enregistrer" class="icone" type="button" aria-label="Enregistrer ou partager le PDF" title="Enregistrer ou partager">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2z" /></svg>
+        </button>
         <button id="btn-signets" class="icone" type="button" aria-label="Signets" title="Signets">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" /></svg>
         </button>
@@ -237,6 +240,18 @@
         <div class="dialogue-actions">
           <button class="bouton" value="annuler" type="submit" formnovalidate>Annuler</button>
           <button class="bouton bouton-principal" value="ok" type="submit">OK</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Enregistrer ou partager un PDF : le téléchargement part d'un vrai toucher sur le bouton -->
+    <dialog id="dialogue-enregistrer">
+      <form method="dialog">
+        <p id="enregistrer-texte" class="dialogue-texte"></p>
+        <div class="dialogue-actions dialogue-actions-colonne">
+          <button id="enregistrer-telecharger" class="bouton bouton-principal" type="button">Enregistrer dans Téléchargements</button>
+          <button id="enregistrer-partager" class="bouton" type="button">Partager…</button>
+          <button class="bouton" value="fermer" type="submit">Fermer</button>
         </div>
       </form>
     </dialog>

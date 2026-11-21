@@ -30,7 +30,7 @@ Hors périmètre V1 : annotations, édition du contenu, formulaires, recherche p
 
 ## Fabrication de PDF (ajoutée le 13 novembre 2026)
 
-- **Ne jamais modifier un PDF d'origine** : on produit toujours un nouveau fichier, enregistré dans Téléchargements (`<a download>`) puis ouvert dans le lecteur.
+- **Ne jamais modifier un PDF d'origine** : on produit toujours un nouveau fichier, ouvert dans le lecteur. L'enregistrement dans Téléchargements (`<a download>`) part d'un **toucher direct** sur le bouton « Enregistrer dans Téléchargements » (boîte proposée après fabrication, et bouton de la barre pour le PDF ouvert), avec « Partager… » (`navigator.share` avec fichiers) en secours — le téléchargement automatique après fabrication n'arrivait pas dans Téléchargements sur la tablette (21 novembre 2026).
 - **Extraire des pages** : bouton de la barre du lecteur ; vignettes de toutes les pages avec case à cocher (dessin paresseux, mémoire libérée hors écran), nom du nouveau PDF demandé.
 - **Assembler un dossier** : bouton de l'accueil, `<input type="file" webkitdirectory>` — choix fait par l'utilisateur : dossier seul. Le choix d'un dossier n'existe sur Chrome Android qu'à partir de la **version 132** (données MDN) : en dessous, un avertissement s'affiche et le sélecteur ne propose que des fichiers. Ordre : noms de fichiers, tri « naturel ».
 - Écriture des PDF : **`@cantoo/pdf-lib`** (reprise maintenue de pdf-lib, licence MIT), version exacte dans `package.json`, chargée par import dynamique. PDF.js reste le seul moteur de lecture et d'affichage.
