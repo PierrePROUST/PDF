@@ -59,7 +59,7 @@ export class ListeRecents {
     supprimer.setAttribute("aria-label", `Supprimer « ${d.titre || d.nom} » de la liste`);
     supprimer.innerHTML = ICONE_SUPPRIMER;
     supprimer.addEventListener("click", async () => {
-      if (!confirm(`Supprimer « ${d.titre || d.nom} » de la liste ?\nSes signets et sa position de lecture seront effacés de l'application ; le fichier PDF n'est pas touché.`)) {
+      if (!confirm(`Supprimer « ${d.titre || d.nom} » de la liste ?\nSa copie, ses signets et sa position de lecture seront effacés de l'application ; le fichier PDF d'origine n'est pas touché.`)) {
         return;
       }
       await supprimerDocument(d.id);
@@ -81,8 +81,8 @@ export class ListeRecents {
       `Espace utilisé par tout le site pierreproust.github.io : ${formaterTaille(e.utilise)} ` +
       `sur ${formaterTaille(e.quota)} disponibles. ` +
       (e.persistant
-        ? "Stockage persistant : signets et positions ne seront pas effacés automatiquement."
-        : "Stockage non persistant : le navigateur peut effacer signets et positions s'il manque de place.");
+        ? "Stockage persistant : les documents ne seront pas effacés automatiquement."
+        : "Stockage non persistant : le navigateur peut effacer les documents s'il manque de place.");
     this.espace.replaceChildren(resume);
 
     const detail = await detailEspace().catch((err) => {
@@ -114,11 +114,11 @@ export class ListeRecents {
       const bouton = document.createElement("button");
       bouton.type = "button";
       bouton.className = "bouton";
-      bouton.textContent = `Effacer les ${detail.copies} anciennes copies de PDF`;
+      bouton.textContent = `Effacer les ${detail.copies} copies de PDF`;
       bouton.addEventListener("click", async () => {
         if (
           !confirm(
-            "Effacer les copies de PDF que l'application gardait auparavant ?\n" +
+            "Effacer les copies de PDF gardées par l'application ?\n" +
               "Vos fichiers d'origine, vos signets et vos positions de lecture ne sont pas touchés ; " +
               "il faudra re-choisir le fichier pour rouvrir ces documents.",
           )

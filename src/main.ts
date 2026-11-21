@@ -9,6 +9,7 @@ import { PanneauSignets } from "./signets";
 import {
   demanderPersistance,
   enregistrerDocument,
+  garderCopie,
   lireDocument,
   lireFichier,
   majModeColonnes,
@@ -235,10 +236,10 @@ let nomDocument = "";
 let recentAttendu: { id: string; nom: string } | null = null;
 
 /**
- * Ouvre un PDF (fichier choisi, partagé, récent ou fabriqué par l'application). Seuls le nom,
- * la position de lecture et les signets sont enregistrés dans IndexedDB, sous l'empreinte du
- * contenu : aucune copie du PDF n'est gardée, le fichier reste où il est sur l'appareil.
- * S'il est déjà connu, on reprend à la dernière position.
+ * Ouvre un PDF (fichier choisi, partagé, récent ou fabriqué par l'application). Le document,
+ * sa position de lecture, ses signets et une copie du PDF (pour le rouvrir depuis les récents)
+ * sont enregistrés dans IndexedDB, sous l'empreinte du contenu. Le fichier d'origine n'est
+ * jamais modifié. S'il est déjà connu, on reprend à la dernière position.
  */
 async function ouvrirFichier(fichier: Blob, nom: string, attendu: { id: string; nom: string } | null = null): Promise<void> {
   if (ouvertureEnCours) return;
@@ -250,6 +251,11 @@ async function ouvrirFichier(fichier: Blob, nom: string, attendu: { id: string; 
     const connu = await lireDocument(docId).catch(() => undefined);
     const enregistrement: DocumentEnregistre = { ...(connu ?? { id: docId, nom, taille: fichier.size }), ouvertLe: Date.now() };
     await enregistrerDocument(enregistrement);
+    // Copie gardée pour rouvrir depuis les récents ; un échec (place insuffisante) n'empêche pas la lecture.
+    void garderCopie(docId, fichier).catch((e) => {
+      console.warn("Copie du PDF non gardée :", e);
+      afficherMessage("Pas assez de place pour garder une copie : il faudra re-choisir ce fichier", 6000);
+    });
     if (!connu) void demanderPersistance();
     nomDocument = enregistrement.nom;
 
@@ -285,13 +291,13 @@ async function ouvrirFichier(fichier: Blob, nom: string, attendu: { id: string; 
 }
 
 async function ouvrirRecent(id: string, nom: string): Promise<void> {
-  // Ancienne copie encore gardée par l'application : ouverture directe.
+  // Copie gardée par l'application : ouverture directe.
   const fichier = await lireFichier(id).catch(() => undefined);
   if (fichier) {
     await ouvrirFichier(fichier, nom);
     return;
   }
-  // Sinon on fait re-choisir le fichier : signets et position sont retrouvés par l'empreinte du contenu.
+  // Copie absente (effacée) : on fait re-choisir le fichier ; signets et position sont retrouvés par l'empreinte.
   recentAttendu = { id, nom };
   choixFichier.click();
 }
