@@ -464,6 +464,16 @@ dialog input {
   margin-top: 20px;
 }
 
+.dialogue-texte {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dialogue-actions-colonne {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 /* Mode lecture en colonnes : le balayage horizontal change de colonne au lieu de défiler. */
 #conteneur-pdf.mode-colonnes {
   touch-action: pan-y;
