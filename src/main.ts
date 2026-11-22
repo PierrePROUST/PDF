@@ -1,4 +1,5 @@
 import "./style.css";
+import { installerCopie } from "./copie";
 import type { Emplacement } from "./emplacement";
 import { Extracteur } from "./extracteur";
 import { empreinteSha256 } from "./hachage";
@@ -30,6 +31,9 @@ const visionneuse = new Visionneuse(el<HTMLDivElement>("conteneur-pdf"), el<HTML
   surDeplacement: () => surDeplacement(),
   apresSaut: () => void modeColonnes.recaler(),
 });
+
+// Sélection du texte des pages : bouton « Copier » tant qu'un texte est sélectionné.
+installerCopie(el("visionneuse"), el<HTMLButtonElement>("btn-copier"), (m) => afficherMessage(m));
 
 // ---------- Mode lecture en colonnes (PDF en deux colonnes) ----------
 const btnColonnes = el<HTMLButtonElement>("btn-colonnes");

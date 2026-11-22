@@ -287,6 +287,35 @@ button {
   cursor: pointer;
 }
 
+/* Bouton « Copier » affiché tant qu'un texte des pages est sélectionné (en haut : le menu
+   natif d'Android et les poignées de sélection sont près du texte, souvent plus bas). */
+.bouton-copier {
+  position: absolute;
+  top: calc(var(--hauteur-barre) + env(safe-area-inset-top) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--cible);
+  padding: 0 20px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--accent);
+  color: var(--accent-texte);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.bouton-copier svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 .message {
   position: absolute;
   left: 16px;

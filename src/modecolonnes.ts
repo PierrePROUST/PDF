@@ -15,6 +15,7 @@
  */
 import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { detecterColonnes, indexColonne, sortieDeColonne, type Colonne, type MorceauTexte } from "./colonnes";
+import { selectionEnCours } from "./copie";
 import { pdfjsLib } from "./pdfjs";
 import type { Visionneuse } from "./visionneuse";
 
@@ -270,6 +271,8 @@ export class ModeColonnes {
         const avant = this.dernierHaut;
         this.dernierHaut = haut;
         if (!this.actif || !this.doc || avant === null || this.pincement || this.transition) return;
+        // Poignée de sélection tirée vers le bord : défilement automatique, pas de changement de colonne.
+        if (selectionEnCours()) return;
         const delta = haut - avant;
         // Un grand déplacement d'un coup est un saut (lien, signet, retour), pas un défilement.
         if (delta === 0 || Math.abs(delta) > c.clientHeight) return;
@@ -372,6 +375,11 @@ export class ModeColonnes {
         }
         // Colonne grossie : le déplacement horizontal du doigt fait défiler, pas changer de colonne.
         if (!this.actif || !depart || ev.changedTouches.length !== 1 || this.colonneLarge()) return;
+        // Doigt qui étend une sélection de texte : ce n'est pas un balayage.
+        if (selectionEnCours()) {
+          depart = null;
+          return;
+        }
         const dx = ev.changedTouches[0].clientX - depart.x;
         const dy = ev.changedTouches[0].clientY - depart.y;
         const rapide = Date.now() - depart.t < BALAYAGE_DUREE_MAX;
