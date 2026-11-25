@@ -629,6 +629,15 @@ dialog input {
   color: #fff;
 }
 
+.bouton-flottant-gauche {
+  right: auto;
+  left: 12px;
+}
+
+.bouton-flottant[hidden] {
+  display: none;
+}
+
 /* Pages PDF en thème sombre (aucun effet en thème clair : variables non définies). */
 #visionneuse {
   --page-bg-color: var(--fond-page, rgb(255 255 255));

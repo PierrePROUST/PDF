@@ -180,7 +180,7 @@ export class ModeColonnes {
   desactiver(): void {
     if (!this.actif) return;
     this.basculerAffichage(false);
-    this.vision.vue.currentScaleValue = "page-width";
+    this.vision.pleineLargeur();
   }
 
   private basculerAffichage(actif: boolean): void {
