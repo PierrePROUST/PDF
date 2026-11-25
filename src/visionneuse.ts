@@ -179,6 +179,22 @@ export class Visionneuse {
     requestAnimationFrame(placer);
   }
 
+  /** Vrai si la page est à la largeur de l'écran (zoom d'origine, pas de pincement depuis). */
+  get aLaLargeur(): boolean {
+    return this.vue.currentScaleValue === "page-width";
+  }
+
+  /**
+   * Remet la page à la largeur de l'écran, en gardant la page et la hauteur lues
+   * (pas un saut : rien dans l'historique).
+   */
+  pleineLargeur(): void {
+    if (!this.document) return;
+    const e = this.emplacement();
+    this.vue.currentScaleValue = "page-width";
+    this.allerA({ ...e, zoom: this.vue.currentScale, x: 0 });
+  }
+
   /** Saut vers une destination PDF (chaîne ou tableau) ; passe par l'historique. */
   sauterDestination(dest: string | unknown[]): Promise<void> {
     return this.liens.goToDestination(dest);

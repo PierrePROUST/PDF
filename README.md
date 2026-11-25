@@ -27,6 +27,8 @@ PWA de lecture de PDF pour Android (Chrome) : table des matières, signets perso
 
 - **Lecture en colonnes** pour les PDF en deux colonnes (livres de règles, articles) : détectée automatiquement à l'ouverture, une colonne occupe la largeur de l'écran. En défilant, arriver en bas d'une colonne amène en haut de la suivante — avec une marge : la fin de la colonne remonte d'abord jusqu'aux 4/5 de la hauteur de l'écran pour laisser lire les dernières lignes — (colonne gauche → colonne droite → page suivante), et inversement en remontant ; un balayage horizontal change aussi de colonne. Le pincement zoome à l'intérieur de la colonne en cours (quand elle dépasse la largeur de l'écran, le doigt sert à s'y déplacer et le balayage est coupé). Le bouton à deux colonnes de la barre active ou coupe le mode, et ce choix est retenu pour chaque document. Retour, signets et reprise de lecture retrouvent la bonne colonne.
 
+- **Pleine largeur** (bouton rond à flèches ↔, en bas à gauche pendant la lecture) : il n'apparaît que lorsque la page n'est plus à la largeur de l'écran — après un zoom par pincement, un zoom restauré par un signet ou la reprise de lecture, ou en lecture en colonnes. Le toucher remet la page entière à la largeur de l'écran en restant à la même page et à la même hauteur (ce n'est pas un saut : rien dans l'historique Retour). En lecture en colonnes, il coupe le mode, comme le bouton à deux colonnes, et ce choix est retenu pour le document.
+
 - **Sélectionner et copier du texte** : appui long sur un mot de la page, puis tirer les poignées pour étendre la sélection. Un bouton **« Copier »** apparaît en haut de l'écran tant que du texte est sélectionné ; le toucher copie le texte dans le presse-papiers (ligatures remplacées par les lettres ordinaires) et confirme par « Texte copié ». Le menu natif d'Android (Copier, Partager…) reste disponible. En lecture en colonnes, étendre une sélection ne change pas de colonne. Limite : un PDF scanné (images sans texte) n'a rien à sélectionner.
 
 - **Mode sombre** de l'application **et des pages PDF** : bouton de thème (en haut de l'accueil, et rond en bas à droite pendant la lecture). Chaque toucher passe de **automatique** (suit le réglage du téléphone, icône ◐) à **clair** (soleil) puis **sombre** (lune) ; le choix est retenu. En thème sombre, les pages PDF (et les vignettes d'extraction) sont affichées en couleurs inversées et adoucies : fond gris très foncé, texte gris clair, teintes conservées. Limite : les photos apparaissent elles aussi inversées (en négatif) ; repasser en thème clair pour les voir normalement. Les PDF fabriqués (extraction, assemblage) ne sont pas modifiés.
@@ -59,6 +61,7 @@ Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l
 | 5 | Signet (titre proposé = section courante), saut avec restauration du zoom (à 1–2 px près, arrondi d'échelle), retour, renommage, suppression, conservation après rechargement |
 | 6 | Reprise de lecture après fermeture de l'onglet, liste des récents, suppression, partage simulé (formulaire `POST multipart/form-data` vers `./partage`, intercepté par le service worker), ouverture hors ligne, thème sombre |
 | Copie du texte | Chromium (Playwright, émulation Pixel 7) : couche de texte de PDF.js présente sur les pages, sélection posée par script → bouton « Copier » affiché, toucher → texte exact dans le presse-papiers, message « Texte copié », bouton masqué. L'appui long d'Android n'est pas simulable : non testé |
+| Pleine largeur | Chromium (Playwright, émulation Pixel 7) : bouton masqué à l'ouverture ; pincement simulé (zoom ×3) → bouton affiché ; toucher → page à la largeur de l'écran, toujours page 4 / 31, bouton masqué. PDF en deux colonnes : bouton affiché, toucher → mode colonnes coupé, page entière |
 | Mode sombre | Chromium 157 (Playwright, fenêtre 400 × 760) : cycle automatique → clair → sombre, pages PDF assombries, choix retenu après rechargement, thème automatique avec téléphone réglé en sombre, couleur de la barre système (`theme-color`) |
 
 ### À vérifier sur le téléphone (Chrome Android)
@@ -70,6 +73,7 @@ Pour chaque étape, vérification automatisée dans Chromium (Playwright) avec l
 5. Le stockage persistant est accordé (message sous la liste des récents).
 6. Le mode sombre : lisibilité des pages assombries, couleur de la barre d'état, fluidité du défilement avec le filtre d'inversion.
 7. La copie : appui long sur un mot, poignées de sélection, bouton « Copier », collage dans une autre application (en mode normal et en lecture en colonnes).
+8. Le bouton « Pleine largeur » après un pincement, et en lecture en colonnes.
 
 ## Historique
 

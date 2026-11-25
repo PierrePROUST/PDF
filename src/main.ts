@@ -40,17 +40,35 @@ const btnColonnes = el<HTMLButtonElement>("btn-colonnes");
 const modeColonnes = new ModeColonnes(visionneuse, {
   surChangement: (actif) => {
     btnColonnes.setAttribute("aria-pressed", String(actif));
+    majPleineLargeur();
   },
 });
-btnColonnes.addEventListener("click", async () => {
+async function choisirModeColonnes(actif: boolean): Promise<void> {
   if (!visionneuse.document) return;
   const docId = visionneuse.docId;
-  const actif = !modeColonnes.actif;
   if (actif) await modeColonnes.activer(true);
   else modeColonnes.desactiver();
   afficherMessage(actif ? "Lecture en colonnes : en bas d'une colonne, on passe à la suivante" : "Page entière");
   // Le choix est retenu pour ce document et l'emporte sur la détection automatique.
   void majModeColonnes(docId, actif).catch((e) => console.error(e));
+}
+btnColonnes.addEventListener("click", () => void choisirModeColonnes(!modeColonnes.actif));
+
+// ---------- Pleine largeur : page remise à la largeur de l'écran ----------
+// Bouton visible seulement quand la vue n'est pas à la largeur de l'écran (pincement,
+// zoom restauré par un signet ou la reprise, lecture en colonnes).
+const btnPleineLargeur = el<HTMLButtonElement>("btn-pleine-largeur");
+function majPleineLargeur(): void {
+  btnPleineLargeur.hidden = !visionneuse.document || (visionneuse.aLaLargeur && !modeColonnes.actif);
+}
+visionneuse.bus.on("scalechanging", () => majPleineLargeur());
+btnPleineLargeur.addEventListener("click", () => {
+  if (modeColonnes.actif) {
+    void choisirModeColonnes(false);
+  } else {
+    visionneuse.pleineLargeur();
+    afficherMessage("Pleine largeur", 1500);
+  }
 });
 
 /**
@@ -273,6 +291,7 @@ async function ouvrirFichier(fichier: Blob, nom: string, attendu: { id: string; 
     modeColonnes.reinitialiser(null);
     const doc = await visionneuse.ouvrir(new Uint8Array(octets.slice(0)), docId, connu?.position);
     modeColonnes.reinitialiser(doc);
+    majPleineLargeur();
     const meta = await doc.getMetadata().catch(() => null);
     const titre = (meta?.info as { Title?: string } | undefined)?.Title?.trim() || undefined;
     if (titre) el("titre-document").textContent = titre;
@@ -550,6 +569,7 @@ async function fermerDocument(): Promise<void> {
   modeColonnes.reinitialiser(null);
   void recents.afficher();
   await visionneuse.fermer();
+  majPleineLargeur();
 }
 
 // « Documents » : revient à l'entrée « accueil » de l'historique (le popstate ferme le document).
